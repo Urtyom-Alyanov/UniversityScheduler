@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/source/">
+    <Project Path="source/UniversityScheduler.Models/UniversityScheduler.Models.csproj" />
+    <Project Path="source/UniversityScheduler.Services/UniversityScheduler.Services.csproj" />
+    <Project Path="source/UniversityScheduler.UI/UniversityScheduler.UI.csproj" />
+  </Folder>
+</Solution>
