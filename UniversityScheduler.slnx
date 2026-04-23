@@ -4,4 +4,8 @@
     <Project Path="source/UniversityScheduler.Services/UniversityScheduler.Services.csproj" />
     <Project Path="source/UniversityScheduler.UI/UniversityScheduler.UI.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/UniversityScheduler.Models.Tests/UniversityScheduler.Models.Tests.csproj" />
+    <Project Path="tests/UniversityScheduler.Services.Tests/UniversityScheduler.Services.Tests.csproj" />
+  </Folder>
 </Solution>
