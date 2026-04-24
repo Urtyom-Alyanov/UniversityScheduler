@@ -19,7 +19,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\source\UniversityScheduler.Models\UniversityScheduler.Models.csproj" />
+      <ProjectReference Include="..\..\source\UniversityScheduler.Models\UniversityScheduler.Models.csproj" />
     </ItemGroup>
 
 </Project>
