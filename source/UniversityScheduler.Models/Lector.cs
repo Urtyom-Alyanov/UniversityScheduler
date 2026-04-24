@@ -1,7 +1,28 @@
-﻿namespace UniversityScheduler.Models;
+﻿using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
-public class Lector
+namespace UniversityScheduler.Models;
+
+public class Lector : INotifyPropertyChanged
 {
+    private string _name;
+
     public int Id { get; set; }
-    public string Name { get; set; }
+    
+    public string Name
+    {
+        get => _name;
+        set
+        {
+            _name = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public event PropertyChangedEventHandler PropertyChanged;
+
+    protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
 }
