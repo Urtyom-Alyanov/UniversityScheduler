@@ -6,11 +6,12 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <UseWPF>true</UseWPF>
-        <RootNamespace>UniversityScheduler</RootNamespace>
+        <RootNamespace>UniversityScheduler.UI</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\UniversityScheduler.Models\UniversityScheduler.Models.csproj" />
+      <ProjectReference Include="..\UniversityScheduler.Services\UniversityScheduler.Services.csproj" />
     </ItemGroup>
 
 </Project>
