@@ -12,18 +12,15 @@ public class ScheduleService(
     IConflictService conflictService,
     TopologicalSortService topologicalSortService
     ) {
-  private bool IsNextSlotAvailable(TimeSlot current, List<TimeSlot> allSlots)
-  {
+  private bool IsNextSlotAvailable(TimeSlot current, List<TimeSlot> allSlots) {
     return allSlots.Any(s => s.Day == current.Day && s.StartHour == current.StartHour + 1);
   }
 
-  private bool HasAnyConflict(Lesson lesson, TimeSlot slot, Room room, List<ScheduledLesson> currentSchedule)
-  {
+  private bool HasAnyConflict(Lesson lesson, TimeSlot slot, Room room, List<ScheduledLesson> currentSchedule) {
     if (conflictService.HasConflict(lesson, slot, room, currentSchedule))
       return true;
 
-    if (lesson.Duration == 2)
-    {
+    if (lesson.Duration == 2) {
       var nextSlot = new TimeSlot(slot.Day, slot.StartHour + 1);
       if (conflictService.HasConflict(lesson, nextSlot, room, currentSchedule))
         return true;
@@ -67,8 +64,7 @@ public class ScheduleService(
         }
       }
 
-      if (!placed)
-      {
+      if (!placed) {
         result.UnassignedLessons.Add(lesson);
       }
     }
