@@ -1,4 +1,4 @@
-﻿namespace UniversityScheduler.Models;
+namespace UniversityScheduler.Models;
 
 /// <summary>
 /// Временной слот

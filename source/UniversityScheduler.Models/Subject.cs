@@ -1,9 +1,8 @@
-﻿namespace UniversityScheduler.Models;
+namespace UniversityScheduler.Models;
 
 /// <summary>
 /// Дисциплина aka предмет
 /// </summary>
-public class Subject(string name)
-{
-    public Guid ID { get; set; }
+public class Subject(string name) {
+  public Guid ID { get; set; }
 }

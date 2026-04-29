@@ -1,4 +1,4 @@
-﻿namespace UniversityScheduler.Models;
+namespace UniversityScheduler.Models;
 
 /// <summary>
 /// Университетская группа
@@ -13,12 +13,11 @@ public class Group(
     string specialty,
     string subspecialty,
     string year,
-    string number)
-{
-    public Guid ID { get; set; }
-    
-    /// <summary>
-    /// Полное имя группы
-    /// </summary>
-    public string Name => $"{stage}.{specialty}.{subspecialty}.{year}.{number}";
+    string number) {
+  public Guid ID { get; set; }
+
+  /// <summary>
+  /// Полное имя группы
+  /// </summary>
+  public string Name => $"{stage}.{specialty}.{subspecialty}.{year}.{number}";
 }

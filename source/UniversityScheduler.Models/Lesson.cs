@@ -1,4 +1,4 @@
-﻿namespace UniversityScheduler.Models;
+namespace UniversityScheduler.Models;
 
 /// <summary>
 /// Занятие, которое должно состояться
@@ -13,17 +13,16 @@ public class Lesson(
     Group group,
     Lector lector,
     uint duration,
-    RoomType requiredRoomType)
-{
-    public Subject Subject => subject;
-    public Group Group => group;
-    public Lector Lector => lector;
-    public RoomType RequiredRoomType => requiredRoomType;
-    
-    public Guid ID { get; set; }
-    public uint Duration => duration;
-    
-    public List<Guid> Prerequisites { get; set; } = new();
+    RoomType requiredRoomType) {
+  public Subject Subject => subject;
+  public Group Group => group;
+  public Lector Lector => lector;
+  public RoomType RequiredRoomType => requiredRoomType;
+
+  public Guid ID { get; set; }
+  public uint Duration => duration;
+
+  public List<Guid> Prerequisites { get; set; } = new();
 }
 
 
@@ -37,11 +36,10 @@ public class ScheduledLesson(
     Lesson lesson,
     TimeSlot timeSlot,
     Room room
-)
-{
-    public Lesson Lesson => lesson;
-    public TimeSlot Slot => timeSlot;
-    public Room Room => room;
-    
-    public uint EndTime => timeSlot.StartHour + lesson.Duration;
+) {
+  public Lesson Lesson = lesson;
+  public TimeSlot Slot = timeSlot;
+  public Room Room = room;
+
+  public uint EndTime => timeSlot.StartHour + lesson.Duration;
 }
