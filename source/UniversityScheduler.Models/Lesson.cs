@@ -15,6 +15,11 @@ public class Lesson(
     uint duration,
     RoomType requiredRoomType)
 {
+    public Subject Subject => subject;
+    public Group Group => group;
+    public Lector Lector => lector;
+    public RoomType RequiredRoomType => requiredRoomType;
+    
     public Guid ID { get; set; }
     public uint Duration => duration;
     
@@ -34,5 +39,9 @@ public class ScheduledLesson(
     Room room
 )
 {
+    public Lesson Lesson => lesson;
+    public TimeSlot Slot => timeSlot;
+    public Room Room => room;
+    
     public uint EndTime => timeSlot.StartHour + lesson.Duration;
 }
