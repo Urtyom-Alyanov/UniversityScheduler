@@ -1,26 +1,41 @@
 using System;
 using System.Globalization;
 using System.Windows.Data;
+using UniversityScheduler.Models;
 using UniversityScheduler.Services;
 
 namespace UniversityScheduler.UI;
 
-public class TimeSlotConverter : IMultiValueConverter
+public class TimeSlotConverter : IValueConverter
 {
-    public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        if (values.Length >= 2 && values[0] is int slot && values[1] is int duration)
+        if (value is Session session && session?.TimeSlot != null)
         {
-            return SchedulerEngine.FormatTimeSlot(slot, duration);
+            var timeStr = SchedulerEngine.FormatTimeOnly(session.TimeSlot, session.Duration);
+
+            if (string.IsNullOrEmpty(timeStr) || timeStr == "—")
+                return "";
+
+            var details = new System.Text.StringBuilder();
+            details.AppendLine(timeStr);
+
+            if (!string.IsNullOrEmpty(session.Subject))
+                details.AppendLine(session.Subject);
+
+            if (session.Lector != null && !string.IsNullOrEmpty(session.Lector.Name))
+                details.AppendLine(session.Lector.Name);
+
+            if (session.Room != null && !string.IsNullOrEmpty(session.Room.Number))
+                details.AppendLine($"Ауд. {session.Room.Number}");
+
+            return details.ToString().TrimEnd();
         }
-        if (values.Length >= 1 && values[0] is int slotOnly)
-        {
-            return SchedulerEngine.FormatTimeSlot(slotOnly, 1);
-        }
-        return "—";
+
+        return "";
     }
 
-    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
     {
         throw new NotImplementedException();
     }

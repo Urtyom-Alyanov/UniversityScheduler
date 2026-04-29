@@ -14,6 +14,7 @@ public class Session : INotifyPropertyChanged
     public Lector Lector { get; set; }
     public RoomType RequiredType { get; set; }
     public int Duration { get; set; } // 1 или 2 часа
+    public int? PrerequisiteSessionId { get; set; } // Для топологической сортировки
         
     // Результат планирования
     public int? TimeSlot 

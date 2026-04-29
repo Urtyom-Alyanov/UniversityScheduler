@@ -9,10 +9,10 @@ namespace UniversityScheduler.UI.ViewModels;
 public class MainViewModel : ViewModelBase
 {
     public ObservableCollection<Session> Sessions { get; } = new();
+    public ObservableCollection<ScheduleRow> ScheduleTable { get; } = new();
     public ObservableCollection<Group> Groups { get; } = new();
     public ObservableCollection<Lector> Lectors { get; } = new();
     public ObservableCollection<Room> Rooms { get; } = new();
-
     public ObservableCollection<Session> FilteredSessions { get; } = new();
     public ObservableCollection<string> Subjects { get; } = new();
 
@@ -35,17 +35,6 @@ public class MainViewModel : ViewModelBase
         {
             if (SetField(ref _selectedLector, value))
                 FilterByLector();
-        }
-    }
-
-    private Session? _selectedSession;
-    public Session? SelectedSession
-    {
-        get => _selectedSession;
-        set
-        {
-            if (SetField(ref _selectedSession, value))
-                FilterBySubject();
         }
     }
 
@@ -88,6 +77,13 @@ public class MainViewModel : ViewModelBase
         set => SetField(ref _gapsCount, value);
     }
 
+    private int _groupGapsCount;
+    public int GroupGapsCount
+    {
+        get => _groupGapsCount;
+        set => SetField(ref _groupGapsCount, value);
+    }
+
     private string _generateTime = "-";
     public string GenerateTime
     {
@@ -121,14 +117,14 @@ public class MainViewModel : ViewModelBase
     private void FilterByGroup()
     {
         FilteredSessions.Clear();
-        var sessions = SelectedGroup != null 
+        var sessions = SelectedGroup != null
             ? Sessions.Where(s => s.Group.Id == SelectedGroup.Id && s.TimeSlot > 0)
             : Sessions.Where(s => s.TimeSlot > 0);
-        
+
         foreach (var s in sessions.OrderBy(s => s.TimeSlot))
             FilteredSessions.Add(s);
-        
-        StatusText = SelectedGroup != null 
+
+        StatusText = SelectedGroup != null
             ? $"Расписание группы {SelectedGroup.Name}: {FilteredSessions.Count} занятий"
             : "Выберите группу";
     }
@@ -136,14 +132,14 @@ public class MainViewModel : ViewModelBase
     private void FilterByLector()
     {
         FilteredSessions.Clear();
-        var sessions = SelectedLector != null 
+        var sessions = SelectedLector != null
             ? Sessions.Where(s => s.Lector.Id == SelectedLector.Id && s.TimeSlot > 0)
             : Sessions.Where(s => s.TimeSlot > 0);
-        
+
         foreach (var s in sessions.OrderBy(s => s.TimeSlot))
             FilteredSessions.Add(s);
-        
-        StatusText = SelectedLector != null 
+
+        StatusText = SelectedLector != null
             ? $"Расписание преподавателя {SelectedLector.Name}: {FilteredSessions.Count} занятий"
             : "Выберите преподавателя";
     }
@@ -151,14 +147,14 @@ public class MainViewModel : ViewModelBase
     private void FilterBySubject()
     {
         FilteredSessions.Clear();
-        var sessions = SelectedSubject != null 
+        var sessions = SelectedSubject != null
             ? Sessions.Where(s => s.Subject == SelectedSubject && s.TimeSlot > 0)
             : Sessions.Where(s => s.TimeSlot > 0);
-        
+
         foreach (var s in sessions.OrderBy(s => s.TimeSlot))
             FilteredSessions.Add(s);
-        
-        StatusText = SelectedSubject != null 
+
+        StatusText = SelectedSubject != null
             ? $"Занятия по предмету {SelectedSubject}: {FilteredSessions.Count}"
             : "Выберите предмет";
     }
@@ -168,19 +164,43 @@ public class MainViewModel : ViewModelBase
         try
         {
             _engine = new SchedulerEngine(Sessions.ToList(), Rooms.ToList());
-            
+
             var sw = System.Diagnostics.Stopwatch.StartNew();
             _engine.GenerateSchedule();
             sw.Stop();
             GenerateTime = $"{sw.Elapsed.TotalMilliseconds:F2} мс";
-            
+
             StatusText = "Расписание сгенерировано";
+            RefreshScheduleTable();
             RefreshStatistics();
             OnPropertyChanged(nameof(Sessions));
         }
         catch (Exception ex)
         {
             StatusText = $"Ошибка: {ex.Message}";
+        }
+    }
+
+    private void RefreshScheduleTable()
+    {
+        ScheduleTable.Clear();
+
+        for (int slot = 1; slot <= 6; slot++)
+        {
+            var row = new ScheduleRow
+            {
+                TimeLabel = SchedulerEngine.FormatTimeOnly(slot)
+            };
+
+            // Days: index 0=time label, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri
+            for (int day = 0; day < 5; day++)
+            {
+                int timeSlot = day * 6 + slot;
+                var session = Sessions.FirstOrDefault(s => s.TimeSlot == timeSlot && s.Room != null);
+                row.Add(new ScheduleCell { Session = session, Duration = session?.Duration ?? 1 });
+            }
+
+            ScheduleTable.Add(row);
         }
     }
 
@@ -211,13 +231,14 @@ public class MainViewModel : ViewModelBase
         try
         {
             _engine ??= new SchedulerEngine(Sessions.ToList(), Rooms.ToList());
-            
+
             var sw = System.Diagnostics.Stopwatch.StartNew();
             _engine.OptimizeSchedule();
             sw.Stop();
             OptimizeTime = $"{sw.Elapsed.TotalMilliseconds:F2} мс";
-            
+
             StatusText = "Расписание оптимизировано";
+            RefreshScheduleTable();
             RefreshStatistics();
             OnPropertyChanged(nameof(Sessions));
         }
@@ -232,7 +253,7 @@ public class MainViewModel : ViewModelBase
         try
         {
             _engine ??= new SchedulerEngine(Sessions.ToList(), Rooms.ToList());
-            
+
             var utilization = _engine.GetRoomUtilization();
             if (utilization.Any())
             {
@@ -248,6 +269,7 @@ public class MainViewModel : ViewModelBase
             }
 
             GapsCount = _engine.CountGaps();
+            GroupGapsCount = _engine.CountGapsForGroups();
         }
         catch (Exception ex)
         {
@@ -272,7 +294,7 @@ public class MainViewModel : ViewModelBase
             "Экономика", "Менеджмент", "Маркетинг", "Правоведение",
             "Философия", "История", "Иностранный язык", "Психология"
         };
-        
+
         var lectors = new[]
         {
             "Иванов И.И.", "Петров П.П.", "Сидоров С.С.", "Козлов К.К.", "Смирнов С.М.",
@@ -286,17 +308,17 @@ public class MainViewModel : ViewModelBase
             "Нестеров Н.Н.", "Приходько П.П.", "Морозов М.М.", "Шипов Ш.Ш.", "Петухов П.П.",
             "Виноградов В.В.", "Клюев К.К.", "Кондратьев К.К.", "Сидоренко С.С.", "Аксёнов А.А."
         };
-        
+
         for (int i = 1; i <= 30; i++)
         {
             Groups.Add(new Group { Id = i, Name = $"ПИН-{i:D2}" });
         }
-        
+
         for (int i = 0; i < lectors.Length; i++)
         {
             Lectors.Add(new Lector { Id = i + 1, Name = lectors[i] });
         }
-        
+
         for (int i = 1; i <= 15; i++)
         {
             Rooms.Add(new Room { Id = i, Number = $"10{i}", Type = RoomType.Lecture });
@@ -309,7 +331,7 @@ public class MainViewModel : ViewModelBase
         {
             Rooms.Add(new Room { Id = i, Number = $"30{i-25}", Type = RoomType.Laboratory });
         }
-        
+
         var random = new Random(42);
         for (int i = 0; i < subjectNames.Length; i++)
         {
@@ -320,19 +342,19 @@ public class MainViewModel : ViewModelBase
                 var duration = random.Next(0, 2) + 1;
                 var roomType = i < 15 ? RoomType.Lecture : (i < 25 ? RoomType.ComputerLab : RoomType.Laboratory);
                 var sessionId = i * 5 + j + 1;
-                
-                Sessions.Add(new Session 
-                { 
-                    Id = sessionId, 
-                    Subject = subjectNames[i], 
-                    Group = Groups[groupId], 
-                    Lector = Lectors[lectorId], 
-                    RequiredType = roomType, 
-                    Duration = duration 
+
+                Sessions.Add(new Session
+                {
+                    Id = sessionId,
+                    Subject = subjectNames[i],
+                    Group = Groups[groupId],
+                    Lector = Lectors[lectorId],
+                    RequiredType = roomType,
+                    Duration = duration
                 });
             }
         }
-        
+
         foreach (var s in Sessions)
         {
             if (!Subjects.Contains(s.Subject))

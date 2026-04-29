@@ -133,4 +133,40 @@ public class GenerateScheduleTests
         var assignedCount = sessions.Count(s => s.TimeSlot.HasValue);
         Assert.True(assignedCount >= 1);
     }
+
+    [Fact]
+    public void GenerateSchedule_NegativeDuration_HandledGracefully()
+    {
+        var group1 = new Group { Id = 1, Name = "P-101" };
+        var lector1 = new Lector { Id = 1, Name = "Ivanov I.I." };
+        var room1 = new Room { Id = 1, Number = "101", Type = RoomType.Lecture };
+        
+        var sessions = new List<Session>
+        {
+            new Session { Id = 1, Subject = "Math", Group = group1, Lector = lector1, RequiredType = RoomType.Lecture, Duration = -1 }
+        };
+        
+        var rooms = new List<Room> { room1 };
+        var engine = new SchedulerEngine(sessions, rooms);
+
+        engine.GenerateSchedule();
+    }
+
+    [Fact]
+    public void GenerateSchedule_SessionWithNullRoomType_NoCrash()
+    {
+        var group1 = new Group { Id = 1, Name = "P-101" };
+        var lector1 = new Lector { Id = 1, Name = "Ivanov I.I." };
+        
+        var sessions = new List<Session>
+        {
+            new Session { Id = 1, Subject = "Math", Group = group1, Lector = lector1, RequiredType = RoomType.Lecture, Duration = 1 }
+        };
+        
+        var rooms = new List<Room>();
+        var engine = new SchedulerEngine(sessions, rooms);
+
+        engine.GenerateSchedule();
+        Assert.Null(sessions[0].Room);
+    }
 }

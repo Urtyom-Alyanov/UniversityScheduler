@@ -116,7 +116,7 @@ public class StatisticsTests
         var (isValid, message) = engine.ValidateSessionPlacement(session, 1, room2);
 
         Assert.False(isValid);
-        Assert.Contains("Room type", message);
+        Assert.Contains(message, "Неверный тип аудитории (требуется Lecture)");
     }
 
     [Fact]
@@ -165,7 +165,7 @@ public class StatisticsTests
         var (isValid, message) = engine.ValidateSessionPlacement(session2, 1, room1);
 
         Assert.False(isValid);
-        Assert.Contains("Room", message);
+        Assert.Contains(message, "Конфликт ресурсов (группа/преподаватель) или аудитория занята");
     }
 
     [Fact]

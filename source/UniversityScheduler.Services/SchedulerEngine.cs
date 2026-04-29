@@ -40,80 +40,139 @@ private const int SlotsPerDay = 6;
         var endHour = endTime / 60;
         var endMinute = endTime % 60;
         
-        var timeStr = $"{startTimes[slotInDay]/60}:{startTimes[slotInDay]%60:D2}-{endHour:D2}:{endMinute:D2}";
-        return $"{dayNames[day]}, {timeStr}";
+        var startTime = startTimes[slotInDay];
+        var startHour = startTime / 60;
+        var startMinute = startTime % 60;
+        
+        return $"{dayNames[day]}, {startHour}:{startMinute:D2}-{endHour:D2}:{endMinute:D2}";
+    }
+
+    public static string FormatTimeOnly(int? slot, int duration = 1)
+    {
+        if (!slot.HasValue || slot.Value <= 0) return "—";
+        var (day, slotInDay) = ConvertSlotToDayAndSlot(slot.Value);
+
+        var startTimes = new[] { 0, 8*60+30, 10*60+15, 12*60+15, 14*60, 15*60+45, 17*60+30 };
+        var endTime = startTimes[slotInDay] + duration * 90;
+        var endHour = endTime / 60;
+        var endMinute = endTime % 60;
+
+        var startTime = startTimes[slotInDay];
+        var startHour = startTime / 60;
+        var startMinute = startTime % 60;
+
+        return $"{startHour}:{startMinute:D2}-{endHour:D2}:{endMinute:D2}";
     }
     
-    private bool AreConflicting(Session sessionFirst, Session sessionSecond)
+    private bool AreConflicting(Session s1, Session s2)
     {
-        if (sessionFirst.Id == sessionSecond.Id) return false;
-        
-        return sessionFirst.Lector.Id == sessionSecond.Lector.Id || 
-               sessionFirst.Group.Id == sessionSecond.Group.Id;
+        if (s1.Id == s2.Id) return false;
+        if (s1.Lector == null || s2.Lector == null || s1.Group == null || s2.Group == null) return false;
+
+        // Базовый конфликт: один преподаватель или одна группа
+        return s1.Lector.Id == s2.Lector.Id || s1.Group.Id == s2.Group.Id;
     }
 
-    private int GetDegree(Session session) => _sessions.Count(other => AreConflicting(session, other));
-    
-    private bool CanAssign(Session session, int slot)
+    private bool SessionsOverlap(Session s1, Session s2)
     {
-        if (slot <= 0 || slot > MaxSlots) return false;
-        return !_sessions.Any(s => s.TimeSlot == slot && s.TimeSlot.HasValue && AreConflicting(session, s));
+        if (!s1.TimeSlot.HasValue || !s2.TimeSlot.HasValue) return false;
+
+        int start1 = s1.TimeSlot.Value;
+        int end1 = start1 + s1.Duration - 1;
+
+        int start2 = s2.TimeSlot.Value;
+        int end2 = start2 + s2.Duration - 1;
+
+        // Проверка пересечения интервалов в пределах одного дня
+        var day1 = (start1 - 1) / SlotsPerDay;
+        var day2 = (start2 - 1) / SlotsPerDay;
+
+        if (day1 != day2) return false;
+
+        return Math.Max(start1, start2) <= Math.Min(end1, end2);
     }
 
-    private bool IsRoomFree(Room room, int slot)
+    public int CountGapsForGroups()
     {
-        if (slot <= 0) return true;
-        return !_sessions.Any(s => s.TimeSlot == slot && s.TimeSlot.HasValue && s.Room?.Id == room.Id);
-    }
+        var gaps = 0;
+        var groups = _sessions.Select(s => s.Group?.Id).Where(id => id.HasValue).Select(id => id.Value).Distinct().ToList();
 
-    private (bool IsValidDay, bool IsValidSlot) ValidateSlot(int slot)
-    {
-        if (slot <= 0) return (false, false);
-        var (day, slotInDay) = ConvertSlotToDayAndSlot(slot);
-        return (day >= 1 && day <= DaysPerWeek, slotInDay >= 1 && slotInDay <= SlotsPerDay);
-    }
-
-    private Dictionary<int, List<int>> BuildConflictGraph()
-    {
-        var graph = new Dictionary<int, List<int>>();
-        foreach (var s in _sessions)
-            graph[s.Id] = new List<int>();
-        
-        foreach (var s1 in _sessions)
+        foreach (var groupId in groups)
         {
-            foreach (var s2 in _sessions)
+            var groupSessions = _sessions
+                .Where(s => s.Group?.Id == groupId && s.TimeSlot.HasValue)
+                .OrderBy(s => s.TimeSlot)
+                .Select(s => s.TimeSlot!.Value)
+                .ToList();
+
+            for (int i = 1; i < groupSessions.Count; i++)
             {
-                if (s1.Id != s2.Id && AreConflicting(s1, s2) && !graph[s1.Id].Contains(s2.Id))
-                {
-                    graph[s1.Id].Add(s2.Id);
-                }
+                if (groupSessions[i] - groupSessions[i - 1] > 1)
+                    gaps++;
             }
         }
+
+        return gaps;
+    }
+
+    private bool CanAssign(Session session, int slot, Room room)
+    {
+        if (slot <= 0 || slot + session.Duration - 1 > MaxSlots) return false;
         
-        return graph;
+        // Проверка, что занятие не выходит за границы дня
+        int dayStart = (slot - 1) / SlotsPerDay;
+        int dayEnd = (slot + session.Duration - 2) / SlotsPerDay;
+        if (dayStart != dayEnd) return false;
+
+        // Проверка типа аудитории
+        if (room.Type != session.RequiredType) return false;
+
+        foreach (var other in _sessions)
+        {
+            if (other.Id == session.Id || !other.TimeSlot.HasValue) continue;
+
+            int otherStart = other.TimeSlot.Value;
+            int otherEnd = otherStart + other.Duration - 1;
+            int currentEnd = slot + session.Duration - 1;
+
+            // Если в это же время
+            if (Math.Max(slot, otherStart) <= Math.Min(currentEnd, otherEnd))
+            {
+                // Конфликт ресурсов
+                if (AreConflicting(session, other)) return false;
+                // Конфликт аудитории
+                if (other.Room?.Id == room.Id) return false;
+            }
+        }
+        return true;
     }
 
     public (bool IsDag, List<Session> SortedSessions) TopologicalSort()
     {
-        var graph = BuildConflictGraph();
+        var graph = new Dictionary<int, List<int>>();
         var inDegree = _sessions.ToDictionary(s => s.Id, _ => 0);
+
+        foreach (var s in _sessions)
+            graph[s.Id] = new List<int>();
+
         foreach (var s in _sessions)
         {
-            inDegree[s.Id] = graph[s.Id].Count;
+            if (s.PrerequisiteSessionId.HasValue && graph.ContainsKey(s.PrerequisiteSessionId.Value))
+            {
+                graph[s.PrerequisiteSessionId.Value].Add(s.Id);
+                inDegree[s.Id]++;
+            }
         }
 
-        var queue = new Queue<int>();
-        foreach (var s in _sessions.Where(s => inDegree[s.Id] == 0))
-            queue.Enqueue(s.Id);
-
+        var queue = new Queue<int>(_sessions.Where(s => inDegree[s.Id] == 0).Select(s => s.Id));
         var sorted = new List<Session>();
-        
+
         while (queue.Count > 0)
         {
             var id = queue.Dequeue();
             var session = _sessions.First(s => s.Id == id);
             sorted.Add(session);
-            
+
             foreach (var neighborId in graph[id])
             {
                 inDegree[neighborId]--;
@@ -122,125 +181,103 @@ private const int SlotsPerDay = 6;
             }
         }
 
-        var isDag = sorted.Count == _sessions.Count;
-        
+        bool isDag = sorted.Count == _sessions.Count;
         if (!isDag)
         {
-            sorted = _sessions
-                .OrderByDescending(s => GetDegree(s))
-                .ToList();
+            // Если есть циклы, возвращаем все сессии в исходном порядке
+            return (false, _sessions.ToList());
         }
-        
-        return (isDag, sorted);
+
+        return (true, sorted);
     }
 
     public void GenerateSchedule()
     {
-        var (_, sortedSessions) = TopologicalSort();
-        var sessionQueue = new Queue<Session>(sortedSessions);
-
-        while (sessionQueue.Count > 0)
+        // 1. Очистка текущего расписания
+        foreach (var s in _sessions)
         {
-            for (int day = 0; day < DaysPerWeek; day++)
-            {
-                if (sessionQueue.Count == 0) break;
-                
-                for (int slotInDay = 1; slotInDay <= SlotsPerDay; slotInDay++)
-                {
-                    if (sessionQueue.Count == 0) break;
-                    
-                    var slot = day * SlotsPerDay + slotInDay;
-                    var session = sessionQueue.Peek();
-                    
-                    var availableRoom = _rooms.FirstOrDefault(r => 
-                        r.Type == session.RequiredType && 
-                        IsRoomFree(r, slot));
+            s.TimeSlot = null;
+            s.Room = null;
+        }
 
-                    if (availableRoom != null && CanAssign(session, slot))
+        // 2. Топологическая сортировка
+        var (isDag, orderedSessions) = TopologicalSort();
+
+        // 3. Вычисляем уровень (глубину) для каждой сессии в DAG
+        var sessionLevel = new Dictionary<int, int>();
+        foreach (var s in orderedSessions)
+        {
+            if (s.PrerequisiteSessionId.HasValue && sessionLevel.ContainsKey(s.PrerequisiteSessionId.Value))
+            {
+                sessionLevel[s.Id] = sessionLevel[s.PrerequisiteSessionId.Value] + 1;
+            }
+            else
+            {
+                sessionLevel[s.Id] = 0;
+            }
+        }
+
+        // 4. Сортируем: сначала по уровню (топологический порядок), затем по количеству конфликтов
+        var sortedSessions = orderedSessions
+            .OrderBy(s => sessionLevel[s.Id])
+            .ThenByDescending(s => _sessions.Count(other => AreConflicting(s, other)))
+            .ToList();
+
+        foreach (var session in sortedSessions)
+        {
+            bool assigned = false;
+
+            // Если есть пререквизит, начинаем поиск слота ПОСЛЕ него
+            int startSlot = 1;
+            if (session.PrerequisiteSessionId.HasValue)
+            {
+                var prereq = _sessions.FirstOrDefault(s => s.Id == session.PrerequisiteSessionId);
+                if (prereq?.TimeSlot.HasValue == true)
+                {
+                    startSlot = prereq.TimeSlot.Value + prereq.Duration;
+                }
+            }
+
+            for (int slot = startSlot; slot <= MaxSlots; slot++)
+            {
+                foreach (var room in _rooms.Where(r => r.Type == session.RequiredType))
+                {
+                    if (CanAssign(session, slot, room))
                     {
-                        sessionQueue.Dequeue();
                         session.TimeSlot = slot;
-                        session.Room = availableRoom;
+                        session.Room = room;
+                        assigned = true;
+                        break;
                     }
                 }
+                if (assigned) break;
             }
         }
     }
 
     public void OptimizeSchedule()
     {
-        var scheduledSessions = _sessions
-            .Where(s => s.TimeSlot.HasValue && s.TimeSlot.Value > 0)
+        // Минимизация окон: стараемся сдвинуть все пары к началу дня
+        var sessionsByGroup = _sessions
+            .Where(s => s.TimeSlot.HasValue)
+            .GroupBy(s => s.Group.Id)
             .ToList();
 
-        if (!scheduledSessions.Any()) return;
-
-        var sortedSessions = scheduledSessions
-            .OrderBy(s => s.Group.Id)
-            .ThenBy(s => s.Lector.Id)
-            .ToList();
-
-        foreach (var session in sortedSessions)
+        foreach (var groupSessions in sessionsByGroup)
         {
-            session.TimeSlot = null;
-            session.Room = null;
-        }
-
-        var daySlotCounts = new int[DaysPerWeek];
-
-        foreach (var session in sortedSessions)
-        {
-            int bestDay = -1;
-            int bestSlot = -1;
-            Room? bestRoom = null;
-            int minCount = int.MaxValue;
-
-            var daysWithMinCount = Enumerable.Range(0, DaysPerWeek)
-                .Where(d => daySlotCounts[d] <= minCount)
-                .ToList();
-
-            foreach (var day in daysWithMinCount.OrderBy(d => daySlotCounts[d]))
+            var sorted = groupSessions.OrderBy(s => s.TimeSlot).ToList();
+            foreach (var session in sorted)
             {
-                for (int slotInDay = 0; slotInDay < SlotsPerDay; slotInDay++)
+                int currentSlot = session.TimeSlot.Value;
+                Room currentRoom = session.Room;
+                
+                // Пробуем найти более ранний слот в тот же день
+                int day = (currentSlot - 1) / SlotsPerDay;
+                for (int earlierSlot = day * SlotsPerDay + 1; earlierSlot < currentSlot; earlierSlot++)
                 {
-                    int slot = day * SlotsPerDay + slotInDay + 1;
-
-                    var availableRoom = _rooms.FirstOrDefault(r =>
-                        r.Type == session.RequiredType &&
-                        IsRoomFree(r, slot));
-
-                    if (availableRoom != null && CanAssign(session, slot))
+                    if (CanAssign(session, earlierSlot, currentRoom))
                     {
-                        bestDay = day;
-                        bestSlot = slot;
-                        bestRoom = availableRoom;
-                        break;
-                    }
-                }
-                if (bestSlot > 0)
-                {
-                    daySlotCounts[bestDay]++;
-                    break;
-                }
-            }
-
-            if (bestSlot > 0 && bestRoom != null)
-            {
-                session.TimeSlot = bestSlot;
-                session.Room = bestRoom;
-            }
-            else
-            {
-                for (int slot = 1; slot <= MaxSlots; slot++)
-                {
-                    var availableRoom = _rooms.FirstOrDefault(r =>
-                        r.Type == session.RequiredType &&
-                        IsRoomFree(r, slot));
-
-                    if (availableRoom != null && CanAssign(session, slot))
-                    {
-                        session.TimeSlot = slot;
-                        session.Room = availableRoom;
+                        session.TimeSlot = earlierSlot;
                         break;
                     }
                 }
@@ -252,51 +289,43 @@ private const int SlotsPerDay = 6;
     {
         var conflicts = new List<string>();
 
-        foreach (var session1 in _sessions)
+        for (int i = 0; i < _sessions.Count; i++)
         {
-            if (!session1.TimeSlot.HasValue || session1.Room == null) continue;
+            var s1 = _sessions[i];
+            if (!s1.TimeSlot.HasValue || s1.Room == null) continue;
 
-            foreach (var session2 in _sessions)
+            for (int j = i + 1; j < _sessions.Count; j++)
             {
-                if (session1.Id == session2.Id || !session2.TimeSlot.HasValue || session2.Room == null) continue;
+                var s2 = _sessions[j];
+                if (!s2.TimeSlot.HasValue || s2.Room == null) continue;
 
-                if (session1.TimeSlot == session2.TimeSlot)
+                if (SessionsOverlap(s1, s2))
                 {
-                    if (session1.Group.Id == session2.Group.Id)
-                    {
-                        conflicts.Add($"Conflict: Group {session1.Group.Name} has two sessions (\"{session1.Subject}\" and \"{session2.Subject}\") at time slot {session1.TimeSlot}.");
-                    }
-                    if (session1.Lector.Id == session2.Lector.Id)
-                    {
-                        conflicts.Add($"Conflict: Lector {session1.Lector.Name} has two sessions (\"{session1.Subject}\" and \"{session2.Subject}\") at time slot {session1.TimeSlot}.");
-                    }
-                    if (session1.Room.Id == session2.Room.Id)
-                    {
-                        conflicts.Add($"Conflict: Room {session1.Room.Number} has two sessions (\"{session1.Subject}\" and \"{session2.Subject}\") at time slot {session1.TimeSlot}.");
-                    }
+                    if (s1.Group.Id == s2.Group.Id)
+                        conflicts.Add($"Конфликт: Группа {s1.Group.Name} — пересечение '{s1.Subject}' и '{s2.Subject}'");
+                    
+                    if (s1.Lector.Id == s2.Lector.Id)
+                        conflicts.Add($"Конфликт: Преподаватель {s1.Lector.Name} — пересечение '{s1.Subject}' и '{s2.Subject}'");
+                    
+                    if (s1.Room.Id == s2.Room.Id)
+                        conflicts.Add($"Конфликт: Аудитория {s1.Room.Number} занята одновременно '{s1.Subject}' и '{s2.Subject}'");
                 }
             }
         }
 
-        return conflicts.Distinct().ToList();
+        return conflicts;
     }
 
     public Dictionary<int, double> GetRoomUtilization()
     {
         var utilization = new Dictionary<int, double>();
-        var maxSlot = _sessions.Where(s => s.TimeSlot.HasValue && s.TimeSlot.Value > 0)
-            .Select(s => s.TimeSlot!.Value)
-            .DefaultIfEmpty(0)
-            .Max();
-        
-        if (maxSlot == 0) maxSlot = MaxSlots;
-        
+
         foreach (var room in _rooms)
         {
             var usedSlots = _sessions.Count(s => s.Room?.Id == room.Id && s.TimeSlot.HasValue && s.TimeSlot.Value > 0);
-            utilization[room.Id] = (double)usedSlots / maxSlot * 100;
+            utilization[room.Id] = (double)usedSlots / MaxSlots * 100;
         }
-        
+
         return utilization;
     }
 
@@ -341,21 +370,24 @@ private const int SlotsPerDay = 6;
 
     public (bool IsValid, string Message) ValidateSessionPlacement(Session session, int newSlot, Room newRoom)
     {
-        if (newRoom.Type != session.RequiredType)
-            return (false, "Room type does not match required type");
-        
-        var otherSessions = _sessions.Where(s => s.Id != session.Id && s.TimeSlot == newSlot).ToList();
-        
-        foreach (var other in otherSessions)
+        if (CanAssign(session, newSlot, newRoom))
         {
-            if (AreConflicting(session, other))
-                return (false, $"Conflict with session {other.Subject}");
-            
-            if (other.Room?.Id == newRoom.Id)
-                return (false, "Room is already occupied");
+            return (true, "Допустимо");
         }
         
-        return (true, "Valid");
+        // Более детальная проверка для сообщения об ошибке
+        if (newSlot <= 0 || newSlot + session.Duration - 1 > MaxSlots)
+            return (false, "Слот вне допустимого диапазона");
+
+        int dayStart = (newSlot - 1) / SlotsPerDay;
+        int dayEnd = (newSlot + session.Duration - 2) / SlotsPerDay;
+        if (dayStart != dayEnd)
+            return (false, "Занятие выходит за пределы одного дня");
+
+        if (newRoom.Type != session.RequiredType)
+            return (false, $"Неверный тип аудитории (требуется {session.RequiredType})");
+
+        return (false, "Конфликт ресурсов (группа/преподаватель) или аудитория занята");
     }
 
     public void AssignSession(Session session, int slot, Room room)

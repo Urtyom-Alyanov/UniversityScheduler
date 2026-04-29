@@ -1,6 +1,5 @@
 using Xunit;
 using System.Collections.Generic;
-using System.Linq;
 using UniversityScheduler.Models;
 
 namespace UniversityScheduler.Services.Tests;
@@ -8,119 +7,108 @@ namespace UniversityScheduler.Services.Tests;
 public class TopologicalSortTests
 {
     [Fact]
-    public void TopologicalSort_TypicalData_ReturnsDagAndSortedSessions()
+    public void TopologicalSort_TypicalData_ReturnsCorrectOrder()
     {
-        var group1 = new Group { Id = 1, Name = "P-101" };
-        var group2 = new Group { Id = 2, Name = "P-102" };
+        var s1 = new Session { Id = 1, Subject = "S1" };
+        var s2 = new Session { Id = 2, Subject = "S2", PrerequisiteSessionId = 1 };
+        var s3 = new Session { Id = 3, Subject = "S3", PrerequisiteSessionId = 2 };
         
-        var lector1 = new Lector { Id = 1, Name = "Ivanov I.I." };
-        var lector2 = new Lector { Id = 2, Name = "Petrov P.P." };
-        
-        var room1 = new Room { Id = 1, Number = "101", Type = RoomType.Lecture };
-        
-        var sessions = new List<Session>
-        {
-            new Session { Id = 1, Subject = "Math", Group = group1, Lector = lector1, RequiredType = RoomType.Lecture, Duration = 2 },
-            new Session { Id = 2, Subject = "Physics", Group = group2, Lector = lector2, RequiredType = RoomType.Lecture, Duration = 2 }
-        };
-        
-        var rooms = new List<Room> { room1 };
-        var engine = new SchedulerEngine(sessions, rooms);
+        var sessions = new List<Session> { s3, s2, s1 };
+        var engine = new SchedulerEngine(sessions, new List<Room>());
 
-        var (isDag, sortedSessions) = engine.TopologicalSort();
+        var (isDag, sorted) = engine.TopologicalSort();
 
         Assert.True(isDag);
-        Assert.Equal(2, sortedSessions.Count);
+        Assert.Equal(1, sorted[0].Id);
+        Assert.Equal(2, sorted[1].Id);
+        Assert.Equal(3, sorted[2].Id);
     }
 
     [Fact]
-    public void TopologicalSort_SingleSession_ReturnsValidSortedList()
+    public void TopologicalSort_EmptyList_ReturnsEmpty()
     {
-        var group1 = new Group { Id = 1, Name = "P-101" };
-        var lector1 = new Lector { Id = 1, Name = "Ivanov I.I." };
-        var room1 = new Room { Id = 1, Number = "101", Type = RoomType.Lecture };
-        
-        var sessions = new List<Session>
-        {
-            new Session { Id = 1, Subject = "Math", Group = group1, Lector = lector1, RequiredType = RoomType.Lecture, Duration = 1 }
-        };
-        
-        var rooms = new List<Room> { room1 };
-        var engine = new SchedulerEngine(sessions, rooms);
-
-        var (_, sortedSessions) = engine.TopologicalSort();
-
-        Assert.Single(sortedSessions);
-        Assert.Equal(1, sortedSessions[0].Id);
-    }
-
-    [Fact]
-    public void TopologicalSort_EmptySessions_ReturnsEmptyList()
-    {
-        var rooms = new List<Room>();
-        var engine = new SchedulerEngine(new List<Session>(), rooms);
-
-        var (isDag, sortedSessions) = engine.TopologicalSort();
-
+        var engine = new SchedulerEngine(new List<Session>(), new List<Room>());
+        var (isDag, sorted) = engine.TopologicalSort();
         Assert.True(isDag);
-        Assert.Empty(sortedSessions);
+        Assert.Empty(sorted);
     }
 
     [Fact]
-    public void TopologicalSort_LargeDataset_CompletesInReasonableTime()
+    public void TopologicalSort_Cycle_ReturnsIsDagFalse()
     {
-        var sessions = new List<Session>();
-        var rooms = new List<Room>();
+        var s1 = new Session { Id = 1, Subject = "S1", PrerequisiteSessionId = 2 };
+        var s2 = new Session { Id = 2, Subject = "S2", PrerequisiteSessionId = 1 };
         
-        for (int i = 0; i < 40; i++)
-        {
-            rooms.Add(new Room { Id = i + 1, Number = (i + 1).ToString(), Type = (RoomType)(i % 3) });
-        }
-        
-        for (int i = 0; i < 150; i++)
-        {
-            var groupId = (i % 30) + 1;
-            var lectorId = (i % 50) + 1;
-            sessions.Add(new Session 
-            { 
-                Id = i + 1, 
-                Subject = $"Subject{i}", 
-                Group = new Group { Id = groupId, Name = $"G-{groupId}" }, 
-                Lector = new Lector { Id = lectorId, Name = $"L-{lectorId}" }, 
-                RequiredType = (RoomType)(i % 3), 
-                Duration = (i % 2) + 1 
-            });
-        }
-        
-        var engine = new SchedulerEngine(sessions, rooms);
-        var startTime = DateTime.Now;
-        
-        var (_, sortedSessions) = engine.TopologicalSort();
-        
-        var elapsed = DateTime.Now - startTime;
-        Assert.True(elapsed.TotalSeconds < 10, $"Took {elapsed.TotalSeconds}s");
-        Assert.Equal(150, sortedSessions.Count);
-    }
+        var sessions = new List<Session> { s1, s2 };
+        var engine = new SchedulerEngine(sessions, new List<Room>());
 
-    [Fact]
-    public void TopologicalSort_ConflictingSessions_FallsBackToGreedy()
-    {
-        var group1 = new Group { Id = 1, Name = "P-101" };
-        var lector1 = new Lector { Id = 1, Name = "Ivanov I.I." };
-        var room1 = new Room { Id = 1, Number = "101", Type = RoomType.Lecture };
-        
-        var sessions = new List<Session>
-        {
-            new Session { Id = 1, Subject = "Math", Group = group1, Lector = lector1, RequiredType = RoomType.Lecture, Duration = 2 },
-            new Session { Id = 2, Subject = "Physics", Group = group1, Lector = lector1, RequiredType = RoomType.Lecture, Duration = 2 }
-        };
-        
-        var rooms = new List<Room> { room1 };
-        var engine = new SchedulerEngine(sessions, rooms);
-
-        var (isDag, sortedSessions) = engine.TopologicalSort();
+        var (isDag, _) = engine.TopologicalSort();
 
         Assert.False(isDag);
-        Assert.Equal(2, sortedSessions.Count);
+    }
+
+    [Fact]
+    public void TopologicalSort_NullPrerequisites_HandlesCorrectly()
+    {
+        var s1 = new Session { Id = 1, Subject = "S1", PrerequisiteSessionId = null };
+        var sessions = new List<Session> { s1 };
+        var engine = new SchedulerEngine(sessions, new List<Room>());
+
+        var (isDag, sorted) = engine.TopologicalSort();
+
+        Assert.True(isDag);
+        Assert.Single(sorted);
+    }
+
+    [Fact]
+    public void TopologicalSort_DisconnectedGraph_ReturnsAllSessions()
+    {
+        var s1 = new Session { Id = 1, Subject = "S1" };
+        var s2 = new Session { Id = 2, Subject = "S2" };
+        var sessions = new List<Session> { s1, s2 };
+        var engine = new SchedulerEngine(sessions, new List<Room>());
+
+        var (isDag, sorted) = engine.TopologicalSort();
+
+        Assert.True(isDag);
+        Assert.Equal(2, sorted.Count);
+    }
+
+    [Fact]
+    public void TopologicalSort_LargeDataset_CompletesInTime()
+    {
+        var sessions = new List<Session>();
+        for (int i = 0; i < 200; i++)
+        {
+            sessions.Add(new Session
+            {
+                Id = i + 1,
+                Subject = $"S{i + 1}",
+                PrerequisiteSessionId = i > 0 ? i : (int?)null
+            });
+        }
+
+        var engine = new SchedulerEngine(sessions, new List<Room>());
+        var startTime = DateTime.Now;
+
+        var (isDag, sorted) = engine.TopologicalSort();
+
+        var elapsed = DateTime.Now - startTime;
+        Assert.True(elapsed.TotalSeconds < 5, $"Took {elapsed.TotalSeconds}s");
+        Assert.True(isDag);
+        Assert.Equal(200, sorted.Count);
+    }
+
+    [Fact]
+    public void TopologicalSort_SelfReference_DetectsCycle()
+    {
+        var s1 = new Session { Id = 1, Subject = "S1", PrerequisiteSessionId = 1 };
+        
+        var sessions = new List<Session> { s1 };
+        var engine = new SchedulerEngine(sessions, new List<Room>());
+
+        var (isDag, _) = engine.TopologicalSort();
+
+        Assert.False(isDag);
     }
 }

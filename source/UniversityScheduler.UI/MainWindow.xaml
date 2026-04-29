@@ -8,11 +8,12 @@
         xmlns:conv="clr-namespace:UniversityScheduler.UI"
         mc:Ignorable="d"
         Title="Планировщик расписания университета" Height="700" Width="1100">
-    
+
     <Window.Resources>
         <conv:TimeSlotConverter x:Key="TimeSlotConverter"/>
+        <conv:RoomTypeToBrushConverter x:Key="RoomTypeToBrushConverter"/>
     </Window.Resources>
-    
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
@@ -26,57 +27,119 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
-                    
-                    <StackPanel Orientation="Horizontal" Margin="5">
-                        <Button Content="Создать расписание" Padding="10,5" Margin="5" Command="{Binding GenerateScheduleCommand}"/>
-                        <Button Content="Оптимизировать" Padding="10,5" Margin="5" Command="{Binding OptimizeScheduleCommand}"/>
-                        <Button Content="Проверить конфликты" Padding="10,5" Margin="5" Command="{Binding CheckConflictsCommand}"/>
-                    </StackPanel>
 
-                    <DataGrid Grid.Row="1" ItemsSource="{Binding Sessions}" AutoGenerateColumns="False" Margin="5" IsReadOnly="True">
+<StackPanel Orientation="Horizontal" Margin="5">
+                         <Button Content="Создать расписание" Padding="10,5" Margin="5" Command="{Binding GenerateScheduleCommand}"/>
+                         <Button Content="Оптимизировать" Padding="10,5" Margin="5" Command="{Binding OptimizeScheduleCommand}"/>
+                         <Button Content="Проверить конфликты" Padding="10,5" Margin="5" Command="{Binding CheckConflictsCommand}"/>
+                         <Border Background="#ADD8E6" Padding="5" Margin="5">
+                             <TextBlock Text="Лекция" VerticalAlignment="Center"/>
+                         </Border>
+                         <Border Background="#90EE90" Padding="5" Margin="5">
+                             <TextBlock Text="Комп. класс" VerticalAlignment="Center"/>
+                         </Border>
+                         <Border Background="#FFDAB9" Padding="5" Margin="5">
+                             <TextBlock Text="Лаборатория" VerticalAlignment="Center"/>
+                         </Border>
+                     </StackPanel>
+
+<DataGrid Grid.Row="1" ItemsSource="{Binding ScheduleTable}" AutoGenerateColumns="False" IsReadOnly="True"
+                               CanUserAddRows="False" CanUserDeleteRows="False" SelectionMode="Single"
+                               SelectionChanged="ScheduleGrid_SelectionChanged">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="40" />
-                            <DataGridTextColumn Header="Предмет" Binding="{Binding Subject}" Width="150" />
-                            <DataGridTextColumn Header="Группа" Binding="{Binding Group.Name}" Width="80" />
-                            <DataGridTextColumn Header="Преподаватель" Binding="{Binding Lector.Name}" Width="150" />
-                            <DataGridTextColumn Header="Тип аудитории" Binding="{Binding RequiredType}" Width="100" />
-                            <DataGridTextColumn Header="Длительность" Binding="{Binding Duration}" Width="80" />
-                            <DataGridTextColumn Header="Аудитория" Binding="{Binding Room.Number}" Width="80" />
-                            <DataGridTextColumn Header="Время" Width="120">
-                                <DataGridTextColumn.Binding>
-                                    <MultiBinding Converter="{StaticResource TimeSlotConverter}">
-                                        <Binding Path="TimeSlot"/>
-                                        <Binding Path="Duration"/>
-                                    </MultiBinding>
-                                </DataGridTextColumn.Binding>
+                            <DataGridTextColumn Header="Время" Binding="{Binding TimeLabel}" Width="80">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="HorizontalAlignment" Value="Center"/>
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
+
+                            <DataGridTemplateColumn Header="Пн" Width="*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border Background="{Binding [0].Session, Converter={StaticResource RoomTypeToBrushConverter}}"
+                                                Padding="5">
+                                            <TextBlock Text="{Binding [0].Session, Converter={StaticResource TimeSlotConverter}}"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                       TextWrapping="Wrap"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTemplateColumn Header="Вт" Width="*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border Background="{Binding [1].Session, Converter={StaticResource RoomTypeToBrushConverter}}"
+                                                Padding="5">
+                                            <TextBlock Text="{Binding [1].Session, Converter={StaticResource TimeSlotConverter}}"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                       TextWrapping="Wrap"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTemplateColumn Header="Ср" Width="*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border Background="{Binding [2].Session, Converter={StaticResource RoomTypeToBrushConverter}}"
+                                                Padding="5">
+                                            <TextBlock Text="{Binding [2].Session, Converter={StaticResource TimeSlotConverter}}"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                       TextWrapping="Wrap"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTemplateColumn Header="Чт" Width="*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border Background="{Binding [3].Session, Converter={StaticResource RoomTypeToBrushConverter}}"
+                                                Padding="5">
+                                            <TextBlock Text="{Binding [3].Session, Converter={StaticResource TimeSlotConverter}}"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                       TextWrapping="Wrap"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTemplateColumn Header="Пт" Width="*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border Background="{Binding [4].Session, Converter={StaticResource RoomTypeToBrushConverter}}"
+                                                Padding="5">
+                                            <TextBlock Text="{Binding [4].Session, Converter={StaticResource TimeSlotConverter}}"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                       TextWrapping="Wrap"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>
             </TabItem>
-            
+
             <TabItem Header="По группам">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="150"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-                    
+
                     <StackPanel Grid.Column="0" Margin="5">
                         <TextBlock Text="Выберите группу:" Margin="0,5"/>
                         <ListBox ItemsSource="{Binding Groups}" SelectedItem="{Binding SelectedGroup}" DisplayMemberPath="Name" Height="300"/>
                     </StackPanel>
-                    
+
                     <DataGrid Grid.Column="1" ItemsSource="{Binding FilteredSessions}" AutoGenerateColumns="False" Margin="5" IsReadOnly="True">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="День и время" Width="150">
-                                <DataGridTextColumn.Binding>
-                                    <MultiBinding Converter="{StaticResource TimeSlotConverter}">
-                                        <Binding Path="TimeSlot"/>
-                                        <Binding Path="Duration"/>
-                                    </MultiBinding>
-                                </DataGridTextColumn.Binding>
-                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="День и время" Width="150" Binding="{Binding Converter={StaticResource TimeSlotConverter}}"/>
                             <DataGridTextColumn Header="Предмет" Binding="{Binding Subject}" Width="200" />
                             <DataGridTextColumn Header="Преподаватель" Binding="{Binding Lector.Name}" Width="150" />
                             <DataGridTextColumn Header="Аудитория" Binding="{Binding Room.Number}" Width="80" />
@@ -85,60 +148,22 @@
                     </DataGrid>
                 </Grid>
             </TabItem>
-            
+
             <TabItem Header="По преподавателям">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="200"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-                    
+
                     <StackPanel Grid.Column="0" Margin="5">
                         <TextBlock Text="Выберите преподавателя:" Margin="0,5"/>
                         <ListBox ItemsSource="{Binding Lectors}" SelectedItem="{Binding SelectedLector}" DisplayMemberPath="Name" Height="300"/>
                     </StackPanel>
-                    
-                    <DataGrid Grid.Column="1" ItemsSource="{Binding FilteredSessions}" AutoGenerateColumns="False" Margin="5" IsReadOnly="True">
+
+<DataGrid Grid.Column="1" ItemsSource="{Binding FilteredSessions}" AutoGenerateColumns="False" Margin="5" IsReadOnly="True">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="День и время" Width="150">
-                                <DataGridTextColumn.Binding>
-                                    <MultiBinding Converter="{StaticResource TimeSlotConverter}">
-                                        <Binding Path="TimeSlot"/>
-                                        <Binding Path="Duration"/>
-                                    </MultiBinding>
-                                </DataGridTextColumn.Binding>
-                            </DataGridTextColumn>
-                            <DataGridTextColumn Header="Предмет" Binding="{Binding Subject}" Width="200" />
-                            <DataGridTextColumn Header="Группа" Binding="{Binding Group.Name}" Width="80" />
-                            <DataGridTextColumn Header="Аудитория" Binding="{Binding Room.Number}" Width="80" />
-                            <DataGridTextColumn Header="Длительность" Binding="{Binding Duration}" Width="80" />
-                        </DataGrid.Columns>
-                    </DataGrid>
-                </Grid>
-            </TabItem>
-            
-            <TabItem Header="По предметам">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="200"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    
-                    <StackPanel Grid.Column="0" Margin="5">
-                        <TextBlock Text="Выберите предмет:" Margin="0,5"/>
-                        <ListBox ItemsSource="{Binding Subjects}" SelectedItem="{Binding SelectedSubject}" Height="300"/>
-                    </StackPanel>
-                    
-                    <DataGrid Grid.Column="1" ItemsSource="{Binding FilteredSessions}" AutoGenerateColumns="False" Margin="5" IsReadOnly="True">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="День и время" Width="150">
-                                <DataGridTextColumn.Binding>
-                                    <MultiBinding Converter="{StaticResource TimeSlotConverter}">
-                                        <Binding Path="TimeSlot"/>
-                                        <Binding Path="Duration"/>
-                                    </MultiBinding>
-                                </DataGridTextColumn.Binding>
-                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="День и время" Width="150" Binding="{Binding Converter={StaticResource TimeSlotConverter}}"/>
                             <DataGridTextColumn Header="Группа" Binding="{Binding Group.Name}" Width="80" />
                             <DataGridTextColumn Header="Преподаватель" Binding="{Binding Lector.Name}" Width="150" />
                             <DataGridTextColumn Header="Аудитория" Binding="{Binding Room.Number}" Width="80" />
@@ -146,7 +171,30 @@
                     </DataGrid>
                 </Grid>
             </TabItem>
-            
+
+            <TabItem Header="По предметам">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="200"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Margin="5">
+                        <TextBlock Text="Выберите предмет:" Margin="0,5"/>
+                        <ListBox ItemsSource="{Binding Subjects}" SelectedItem="{Binding SelectedSubject}" Height="300"/>
+                    </StackPanel>
+
+<DataGrid Grid.Column="1" ItemsSource="{Binding FilteredSessions}" AutoGenerateColumns="False" Margin="5" IsReadOnly="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="День и время" Width="150" Binding="{Binding Converter={StaticResource TimeSlotConverter}}"/>
+                            <DataGridTextColumn Header="Группа" Binding="{Binding Group.Name}" Width="80" />
+                            <DataGridTextColumn Header="Аудитория" Binding="{Binding Room.Number}" Width="80" />
+                            <DataGridTextColumn Header="Длительность" Binding="{Binding Duration}" Width="80" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
             <TabItem Header="Данные">
                 <UniformGrid Columns="2">
                     <GroupBox Header="Группы" Margin="5">
@@ -173,28 +221,32 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="250"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-                    
+
                     <TextBlock Grid.Row="0" Grid.ColumnSpan="2" Text="Статистика" FontSize="24" FontWeight="Bold" Margin="0,10"/>
-                    
+
                     <TextBlock Grid.Row="1" Grid.Column="0" Text="Загрузка аудиторий:" FontSize="16" Margin="0,10"/>
                     <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding RoomUtilization}" FontSize="16" Margin="0,10"/>
-                    
+
                     <TextBlock Grid.Row="2" Grid.Column="0" Text="Нагрузка преподавателей:" FontSize="16" Margin="0,10"/>
                     <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding LectorWorkload}" FontSize="16" Margin="0,10"/>
-                    
-                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Окон:" FontSize="16" Margin="0,10"/>
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Окон (преподаватели):" FontSize="16" Margin="0,10"/>
                     <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding GapsCount}" FontSize="16" Margin="0,10"/>
-                    
-                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Время генерации:" FontSize="16" Margin="0,10"/>
-                    <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding GenerateTime}" FontSize="16" Margin="0,10"/>
-                    
-                    <TextBlock Grid.Row="5" Grid.Column="0" Text="Время оптимизации:" FontSize="16" Margin="0,10"/>
-                    <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding OptimizeTime}" FontSize="16" Margin="0,10"/>
+
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Окон (студенты):" FontSize="16" Margin="0,10"/>
+                    <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding GroupGapsCount}" FontSize="16" Margin="0,10"/>
+
+                    <TextBlock Grid.Row="5" Grid.Column="0" Text="Время генерации:" FontSize="16" Margin="0,10"/>
+                    <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding GenerateTime}" FontSize="16" Margin="0,10"/>
+
+                    <TextBlock Grid.Row="6" Grid.Column="0" Text="Время оптимизации:" FontSize="16" Margin="0,10"/>
+                    <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding OptimizeTime}" FontSize="16" Margin="0,10"/>
                 </Grid>
             </TabItem>
         </TabControl>
