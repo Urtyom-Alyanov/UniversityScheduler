@@ -226,7 +226,6 @@ public class MainWindowsViewModel : ViewModelBase {
       }
     }
 
-    // Попытаться загрузить лог-файл приложения
     try {
       var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "app_log.txt");
       if (!File.Exists(logPath)) {
@@ -240,7 +239,6 @@ public class MainWindowsViewModel : ViewModelBase {
       LogsText = "Ошибка при чтении журнала";
     }
 
-    // Подготовка отладочной информации
     var sb = new System.Text.StringBuilder();
     sb.AppendLine($"Групп: {Groups.Count}");
     foreach (var g in Groups.Take(10)) sb.AppendLine($" - {g.Name}");
@@ -255,11 +253,10 @@ public class MainWindowsViewModel : ViewModelBase {
 
     SelectedGroup = Groups.FirstOrDefault();
 
-    // Автогенерация расписания при запуске, чтобы сразу отображалось содержимое
     try {
       Generate();
     } catch {
-      // если генерация по каким-то причинам провалилась, не ломать UI
+      StatisticsText = "Ошибка при генерации расписания";
     }
   }
 
