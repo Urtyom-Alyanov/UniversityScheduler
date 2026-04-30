@@ -7,3 +7,4 @@ coveragereport/
 coverage/
 TestResults/
 ~$*.docx
+app_log.txt
