@@ -1,11 +1,209 @@
-﻿<Window x:Class="UniversityScheduler.UI.MainWindow"
+<Window x:Class="UniversityScheduler.UI.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:UniversityScheduler.UI"
-        xmlns:conv="clr-namespace:UniversityScheduler.UI"
+        xmlns:vm="clr-namespace:UniversityScheduler.UI.ViewModels"
+        xmlns:converters="clr-namespace:UniversityScheduler.UI.Converters"
         mc:Ignorable="d"
-        Title="Планировщик расписания университета" Height="700" Width="1100">
->
+        Title="Планировщик расписания университета" Height="800" Width="1200"
+        Background="#F5F5F5">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <converters:DayToColumnConverter x:Key="DayToColumn"/>
+        <converters:HourToRowConverter x:Key="HourToRow"/>
+        <converters:ViewModeToVisibilityConverter x:Key="ViewModeVisible"/>
+
+        <Style x:Key="HeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="5"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="250"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Sidebar -->
+        <Border Grid.Column="0" Background="White" BorderBrush="#DDD" BorderThickness="0,0,1,0" Padding="15">
+            <StackPanel>
+                <TextBlock Text="Управление" FontSize="18" FontWeight="Bold" Margin="0,0,0,15"/>
+
+                <Button Content="Сгенерировать" Command="{Binding GenerateCommand}" Margin="0,0,0,10" Height="35" Background="#4CAF50" Foreground="White" BorderThickness="0"/>
+                <Button Content="Оптимизировать" Command="{Binding OptimizeCommand}" Margin="0,0,0,10" Height="35" Background="#2196F3" Foreground="White" BorderThickness="0"/>
+                <Button Content="Очистить" Command="{Binding ClearCommand}" Margin="0,0,0,20" Height="35" Background="#F44336" Foreground="White" BorderThickness="0"/>
+
+                <TextBlock Text="Вид" FontWeight="Bold" Margin="0,0,0,5"/>
+                <RadioButton Content="По группам" IsChecked="{Binding SelectedViewMode, Converter={StaticResource ViewModeVisible}, ConverterParameter=Group, Mode=TwoWay}" Margin="0,0,0,5"/>
+                <RadioButton Content="По преподавателям" IsChecked="{Binding SelectedViewMode, Converter={StaticResource ViewModeVisible}, ConverterParameter=Lector, Mode=TwoWay}" Margin="0,0,0,5"/>
+                <RadioButton Content="По аудиториям" IsChecked="{Binding SelectedViewMode, Converter={StaticResource ViewModeVisible}, ConverterParameter=Room, Mode=TwoWay}" Margin="0,0,0,15"/>
+
+                <TextBlock Text="Выбор" FontWeight="Bold" Margin="0,0,0,5"/>
+
+                <ComboBox ItemsSource="{Binding Groups}" SelectedItem="{Binding SelectedGroup}" DisplayMemberPath="Name"
+                          Visibility="{Binding SelectedViewMode, Converter={StaticResource ViewModeVisible}, ConverterParameter=Group}" Margin="0,0,0,15"/>
+
+                <ComboBox ItemsSource="{Binding Lectors}" SelectedItem="{Binding SelectedLector}"
+                          Visibility="{Binding SelectedViewMode, Converter={StaticResource ViewModeVisible}, ConverterParameter=Lector}" Margin="0,0,0,15">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding FullName}"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <ComboBox ItemsSource="{Binding Rooms}" SelectedItem="{Binding SelectedRoom}" DisplayMemberPath="FullNumber"
+                          Visibility="{Binding SelectedViewMode, Converter={StaticResource ViewModeVisible}, ConverterParameter=Room}" Margin="0,0,0,15"/>
+
+                <Separator Margin="0,10"/>
+
+                <StackPanel Visibility="{Binding IsLessonSelected, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <TextBlock Text="Редактирование" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Button Content="▲" Command="{Binding MoveUpCommand}" Grid.Row="0" Grid.Column="1" Height="30" Margin="2"/>
+                        <Button Content="◀" Command="{Binding MoveLeftCommand}" Grid.Row="1" Grid.Column="0" Height="30" Margin="2"/>
+                        <Button Content="▶" Command="{Binding MoveRightCommand}" Grid.Row="1" Grid.Column="2" Height="30" Margin="2"/>
+                        <Button Content="▼" Command="{Binding MoveDownCommand}" Grid.Row="2" Grid.Column="1" Height="30" Margin="2"/>
+                    </Grid>
+                    <TextBlock Text="{Binding ConflictMessages}" Foreground="Red" TextWrapping="Wrap" FontSize="10" Margin="0,0,0,5"/>
+                </StackPanel>
+
+                <TextBlock Text="Статистика" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+                <TextBlock Text="{Binding StatisticsText}" TextWrapping="Wrap"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Schedule Grid -->
+        <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+            <Grid Margin="20">
+                <ListBox ItemsSource="{Binding DisplayLessons}" SelectedItem="{Binding SelectedScheduledLesson}"
+                         Background="Transparent" BorderThickness="0">
+                    <ListBox.Template>
+                        <ControlTemplate TargetType="ListBox">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="60"/>
+                                    <ColumnDefinition Width="150"/>
+                                    <ColumnDefinition Width="150"/>
+                                    <ColumnDefinition Width="150"/>
+                                    <ColumnDefinition Width="150"/>
+                                    <ColumnDefinition Width="150"/>
+                                    <ColumnDefinition Width="150"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="40"/>
+                                    <RowDefinition Height="80"/>
+                                    <RowDefinition Height="80"/>
+                                    <RowDefinition Height="80"/>
+                                    <RowDefinition Height="80"/>
+                                    <RowDefinition Height="80"/>
+                                    <RowDefinition Height="80"/>
+                                    <RowDefinition Height="80"/>
+                                    <RowDefinition Height="80"/>
+                                    <RowDefinition Height="80"/>
+                                    <RowDefinition Height="80"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Background grid lines -->
+                                <Border Grid.Row="1" Grid.Column="1" Grid.RowSpan="11" Grid.ColumnSpan="6" BorderBrush="#EEE" BorderThickness="1,1,0,0"/>
+
+                                <!-- Headers -->
+                                <TextBlock Text="Время" Grid.Row="0" Grid.Column="0" Style="{StaticResource HeaderStyle}"/>
+                                <TextBlock Text="Пн" Grid.Row="0" Grid.Column="1" Style="{StaticResource HeaderStyle}"/>
+                                <TextBlock Text="Вт" Grid.Row="0" Grid.Column="2" Style="{StaticResource HeaderStyle}"/>
+                                <TextBlock Text="Ср" Grid.Row="0" Grid.Column="3" Style="{StaticResource HeaderStyle}"/>
+                                <TextBlock Text="Чт" Grid.Row="0" Grid.Column="4" Style="{StaticResource HeaderStyle}"/>
+                                <TextBlock Text="Пт" Grid.Row="0" Grid.Column="5" Style="{StaticResource HeaderStyle}"/>
+                                <TextBlock Text="Сб" Grid.Row="0" Grid.Column="6" Style="{StaticResource HeaderStyle}"/>
+
+                                <TextBlock Text="08:30" Grid.Row="1" Grid.Column="0" VerticalAlignment="Top" Margin="5"/>
+                                <TextBlock Text="10:15" Grid.Row="2" Grid.Column="0" VerticalAlignment="Top" Margin="5"/>
+                                <TextBlock Text="12:15" Grid.Row="3" Grid.Column="0" VerticalAlignment="Top" Margin="5"/>
+                                <TextBlock Text="14:00" Grid.Row="4" Grid.Column="0" VerticalAlignment="Top" Margin="5"/>
+                                <TextBlock Text="15:35" Grid.Row="5" Grid.Column="0" VerticalAlignment="Top" Margin="5"/>
+                                <TextBlock Text="17:10" Grid.Row="6" Grid.Column="0" VerticalAlignment="Top" Margin="5"/>
+
+                                <ItemsPresenter Grid.Row="0" Grid.Column="0" Grid.RowSpan="12" Grid.ColumnSpan="7"/>
+                            </Grid>
+                        </ControlTemplate>
+                    </ListBox.Template>
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Grid ShowGridLines="False">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="60"/>
+                                    <ColumnDefinition Width="150"/>
+                                    <ColumnDefinition Width="150"/>
+                                    <ColumnDefinition Width="150"/>
+                                    <ColumnDefinition Width="150"/>
+                                    <ColumnDefinition Width="150"/>
+                                    <ColumnDefinition Width="150"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="40"/>
+                                    <RowDefinition Height="80"/>
+                                    <RowDefinition Height="80"/>
+                                    <RowDefinition Height="80"/>
+                                    <RowDefinition Height="80"/>
+                                    <RowDefinition Height="80"/>
+                                </Grid.RowDefinitions>
+                            </Grid>
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Grid.Row" Value="{Binding Slot.StartHour, Converter={StaticResource HourToRow}}"/>
+                            <Setter Property="Grid.Column" Value="{Binding Slot.Day, Converter={StaticResource DayToColumn}}"/>
+                            <Setter Property="Grid.RowSpan" Value="{Binding Lesson.Duration}"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <ContentPresenter />
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="#E3F2FD" BorderBrush="#2196F3" BorderThickness="2" Margin="2" CornerRadius="4" Padding="5">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                                <Setter Property="Background" Value="#BBDEFB"/>
+                                                <Setter Property="BorderBrush" Value="#1976D2"/>
+                                                <Setter Property="BorderThickness" Value="3"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Lesson.Subject.Name}" FontWeight="Bold" FontSize="11" TextWrapping="Wrap"/>
+                                    <TextBlock Text="{Binding Lesson.Lector.LastNameWithAliases}" FontSize="10" TextWrapping="Wrap"/>
+                                    <TextBlock Text="{Binding Room.FullNumber}" FontSize="10" Foreground="#666"/>
+                                    <TextBlock Text="{Binding Lesson.Group.Name}" FontSize="10" Foreground="#666"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+        </ScrollViewer>
+    </Grid>
 </Window>
