@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
+using System.IO;
+using System.Linq;
 using UniversityScheduler.Models;
 using UniversityScheduler.Services;
 
@@ -63,14 +65,53 @@ public class MainWindowsViewModel : ViewModelBase {
   public ViewMode SelectedViewMode {
     get => _viewMode;
     set {
-      if (SetProperty(ref _viewMode, value))
+      if (SetProperty(ref _viewMode, value)) {
+        OnPropertyChanged(nameof(SelectionItems));
+        SelectedEntity = SelectionItems.Cast<object?>().FirstOrDefault();
         UpdateDisplay();
+      }
+    }
+  }
+
+  public IEnumerable<object> SelectionItems {
+    get {
+      return _viewMode switch {
+        ViewMode.Group => Groups.Cast<object>(),
+        ViewMode.Lector => Lectors.Cast<object>(),
+        ViewMode.Room => Rooms.Cast<object>(),
+        _ => Groups.Cast<object>()
+      };
+    }
+  }
+
+  private object? _selectedEntity;
+  public object? SelectedEntity {
+    get => _selectedEntity;
+    set {
+      if (SetProperty(ref _selectedEntity, value)) {
+        if (value is Group g) SelectedGroup = g;
+        else if (value is Lector l) SelectedLector = l;
+        else if (value is Room r) SelectedRoom = r;
+      }
     }
   }
 
   public string StatisticsText {
     get => _statisticsText;
     set => SetProperty(ref _statisticsText, value);
+  }
+
+  private string _logsText = string.Empty;
+  private string _debugText = string.Empty;
+
+  public string LogsText {
+    get => _logsText;
+    set => SetProperty(ref _logsText, value);
+  }
+
+  public string DebugText {
+    get => _debugText;
+    set => SetProperty(ref _debugText, value);
   }
 
   private ScheduledLesson? _selectedScheduledLesson;
@@ -129,7 +170,7 @@ public class MainWindowsViewModel : ViewModelBase {
     var newDay = (DayOfWeek)(((int)currentSlot.Day + dayDelta - 1 + 7) % 7 + 1);
     if (newDay == DayOfWeek.Sunday) newDay = DayOfWeek.Monday;
 
-    var newHour = (uint)Math.Clamp((int)currentSlot.StartHour + hourDelta, 8, 18);
+     var newHour = (uint)Math.Clamp((int)currentSlot.StartHour + hourDelta, 1, 6);
     var newSlot = new TimeSlot(newDay, newHour);
 
     var otherLessons = _allScheduledLessons.Where(l => l != SelectedScheduledLesson).ToList();
@@ -185,7 +226,41 @@ public class MainWindowsViewModel : ViewModelBase {
       }
     }
 
+    // Попытаться загрузить лог-файл приложения
+    try {
+      var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "app_log.txt");
+      if (!File.Exists(logPath)) {
+        // попробовать найти в рабочей папке проекта (при запуске из IDE)
+        var candidate = Path.Combine(Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory)!.Parent!.Parent!.Parent!.FullName, "app_log.txt");
+        if (File.Exists(candidate)) logPath = candidate;
+      }
+
+      LogsText = File.Exists(logPath) ? File.ReadAllText(logPath) : "Журнала не найдено: " + logPath;
+    } catch {
+      LogsText = "Ошибка при чтении журнала";
+    }
+
+    // Подготовка отладочной информации
+    var sb = new System.Text.StringBuilder();
+    sb.AppendLine($"Групп: {Groups.Count}");
+    foreach (var g in Groups.Take(10)) sb.AppendLine($" - {g.Name}");
+    sb.AppendLine();
+    sb.AppendLine($"Преподавателей: {Lectors.Count}");
+    foreach (var l in Lectors.Take(10)) sb.AppendLine($" - {l.FullName}");
+    sb.AppendLine();
+    sb.AppendLine($"Аудиторий: {Rooms.Count}");
+    foreach (var r in Rooms.Take(10)) sb.AppendLine($" - {r.FullNumber} ({r.Type})");
+
+    DebugText = sb.ToString();
+
     SelectedGroup = Groups.FirstOrDefault();
+
+    // Автогенерация расписания при запуске, чтобы сразу отображалось содержимое
+    try {
+      Generate();
+    } catch {
+      // если генерация по каким-то причинам провалилась, не ломать UI
+    }
   }
 
   private void Generate() {

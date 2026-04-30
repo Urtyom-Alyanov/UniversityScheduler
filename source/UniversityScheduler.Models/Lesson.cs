@@ -37,9 +37,9 @@ public class ScheduledLesson(
     TimeSlot timeSlot,
     Room room
 ) {
-  public Lesson Lesson = lesson;
-  public TimeSlot Slot = timeSlot;
-  public Room Room = room;
+  public Lesson Lesson { get; set; } = lesson;
+  public TimeSlot Slot { get; set; } = timeSlot;
+  public Room Room { get; set; } = room;
 
   public uint EndTime => timeSlot.StartHour + lesson.Duration;
 }

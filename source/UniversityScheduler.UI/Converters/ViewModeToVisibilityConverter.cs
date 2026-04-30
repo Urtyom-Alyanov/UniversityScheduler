@@ -1,13 +1,18 @@
-﻿using System.Globalization;
+﻿using System;
+using System.Globalization;
 using System.Windows.Data;
+using UniversityScheduler.UI.ViewModels;
 
 namespace UniversityScheduler.UI.Converters;
 
 public class ViewModeToVisibilityConverter : IValueConverter {
   public object Convert(object value, Type targetType, object parameter, CultureInfo culture) {
-    if (value != null && parameter != null && value.ToString() == parameter.ToString())
-      return System.Windows.Visibility.Visible;
-    return System.Windows.Visibility.Collapsed;
+    return value?.ToString() == parameter?.ToString();
   }
-  public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+  public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) {
+    if (value is bool b && b && parameter != null) {
+      return Enum.Parse(typeof(ViewMode), parameter.ToString()!);
+    }
+    return Binding.DoNothing;
+  }
 }

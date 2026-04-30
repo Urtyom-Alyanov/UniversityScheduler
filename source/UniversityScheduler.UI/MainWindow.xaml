@@ -14,6 +14,7 @@
         <converters:DayToColumnConverter x:Key="DayToColumn"/>
         <converters:HourToRowConverter x:Key="HourToRow"/>
         <converters:ViewModeToVisibilityConverter x:Key="ViewModeVisible"/>
+        <converters:EntityToNameConverter x:Key="EntityToName"/>
 
         <Style x:Key="HeaderStyle" TargetType="TextBlock">
             <Setter Property="FontWeight" Value="Bold"/>
@@ -45,20 +46,13 @@
 
                 <TextBlock Text="Выбор" FontWeight="Bold" Margin="0,0,0,5"/>
 
-                <ComboBox ItemsSource="{Binding Groups}" SelectedItem="{Binding SelectedGroup}" DisplayMemberPath="Name"
-                          Visibility="{Binding SelectedViewMode, Converter={StaticResource ViewModeVisible}, ConverterParameter=Group}" Margin="0,0,0,15"/>
-
-                <ComboBox ItemsSource="{Binding Lectors}" SelectedItem="{Binding SelectedLector}"
-                          Visibility="{Binding SelectedViewMode, Converter={StaticResource ViewModeVisible}, ConverterParameter=Lector}" Margin="0,0,0,15">
+                <ComboBox ItemsSource="{Binding SelectionItems}" SelectedItem="{Binding SelectedEntity}" Margin="0,0,0,15">
                     <ComboBox.ItemTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding FullName}"/>
+                            <TextBlock Text="{Binding Converter={StaticResource EntityToName}}"/>
                         </DataTemplate>
                     </ComboBox.ItemTemplate>
                 </ComboBox>
-
-                <ComboBox ItemsSource="{Binding Rooms}" SelectedItem="{Binding SelectedRoom}" DisplayMemberPath="FullNumber"
-                          Visibility="{Binding SelectedViewMode, Converter={StaticResource ViewModeVisible}, ConverterParameter=Room}" Margin="0,0,0,15"/>
 
                 <Separator Margin="0,10"/>
 
@@ -88,122 +82,127 @@
             </StackPanel>
         </Border>
 
-        <!-- Schedule Grid -->
-        <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-            <Grid Margin="20">
-                <ListBox ItemsSource="{Binding DisplayLessons}" SelectedItem="{Binding SelectedScheduledLesson}"
-                         Background="Transparent" BorderThickness="0">
-                    <ListBox.Template>
-                        <ControlTemplate TargetType="ListBox">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="60"/>
-                                    <ColumnDefinition Width="150"/>
-                                    <ColumnDefinition Width="150"/>
-                                    <ColumnDefinition Width="150"/>
-                                    <ColumnDefinition Width="150"/>
-                                    <ColumnDefinition Width="150"/>
-                                    <ColumnDefinition Width="150"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="40"/>
-                                    <RowDefinition Height="80"/>
-                                    <RowDefinition Height="80"/>
-                                    <RowDefinition Height="80"/>
-                                    <RowDefinition Height="80"/>
-                                    <RowDefinition Height="80"/>
-                                    <RowDefinition Height="80"/>
-                                    <RowDefinition Height="80"/>
-                                    <RowDefinition Height="80"/>
-                                    <RowDefinition Height="80"/>
-                                    <RowDefinition Height="80"/>
-                                </Grid.RowDefinitions>
+        <!-- Schedule and tabs -->
+        <TabControl Grid.Column="1" Margin="10">
+            <TabItem Header="Расписание">
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                    <Grid Margin="20">
+                        <ListBox ItemsSource="{Binding DisplayLessons}" SelectedItem="{Binding SelectedScheduledLesson}"
+                                 Background="Transparent" BorderThickness="0">
+                            <ListBox.Template>
+                                <ControlTemplate TargetType="ListBox">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="60"/>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="150"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="40"/>
+                                            <RowDefinition Height="80"/>
+                                            <RowDefinition Height="80"/>
+                                            <RowDefinition Height="80"/>
+                                            <RowDefinition Height="80"/>
+                                            <RowDefinition Height="80"/>
+                                            <RowDefinition Height="80"/>
+                                        </Grid.RowDefinitions>
 
-                                <!-- Background grid lines -->
-                                <Border Grid.Row="1" Grid.Column="1" Grid.RowSpan="11" Grid.ColumnSpan="6" BorderBrush="#EEE" BorderThickness="1,1,0,0"/>
+                                        <!-- Background grid lines -->
+                                        <Border Grid.Row="1" Grid.Column="1" Grid.RowSpan="6" Grid.ColumnSpan="6" BorderBrush="#EEE" BorderThickness="1,1,0,0"/>
 
-                                <!-- Headers -->
-                                <TextBlock Text="Время" Grid.Row="0" Grid.Column="0" Style="{StaticResource HeaderStyle}"/>
-                                <TextBlock Text="Пн" Grid.Row="0" Grid.Column="1" Style="{StaticResource HeaderStyle}"/>
-                                <TextBlock Text="Вт" Grid.Row="0" Grid.Column="2" Style="{StaticResource HeaderStyle}"/>
-                                <TextBlock Text="Ср" Grid.Row="0" Grid.Column="3" Style="{StaticResource HeaderStyle}"/>
-                                <TextBlock Text="Чт" Grid.Row="0" Grid.Column="4" Style="{StaticResource HeaderStyle}"/>
-                                <TextBlock Text="Пт" Grid.Row="0" Grid.Column="5" Style="{StaticResource HeaderStyle}"/>
-                                <TextBlock Text="Сб" Grid.Row="0" Grid.Column="6" Style="{StaticResource HeaderStyle}"/>
+                                        <!-- Headers -->
+                                        <TextBlock Text="Время" Grid.Row="0" Grid.Column="0" Style="{StaticResource HeaderStyle}"/>
+                                        <TextBlock Text="Пн" Grid.Row="0" Grid.Column="1" Style="{StaticResource HeaderStyle}"/>
+                                        <TextBlock Text="Вт" Grid.Row="0" Grid.Column="2" Style="{StaticResource HeaderStyle}"/>
+                                        <TextBlock Text="Ср" Grid.Row="0" Grid.Column="3" Style="{StaticResource HeaderStyle}"/>
+                                        <TextBlock Text="Чт" Grid.Row="0" Grid.Column="4" Style="{StaticResource HeaderStyle}"/>
+                                        <TextBlock Text="Пт" Grid.Row="0" Grid.Column="5" Style="{StaticResource HeaderStyle}"/>
+                                        <TextBlock Text="Сб" Grid.Row="0" Grid.Column="6" Style="{StaticResource HeaderStyle}"/>
 
-                                <TextBlock Text="08:30" Grid.Row="1" Grid.Column="0" VerticalAlignment="Top" Margin="5"/>
-                                <TextBlock Text="10:15" Grid.Row="2" Grid.Column="0" VerticalAlignment="Top" Margin="5"/>
-                                <TextBlock Text="12:15" Grid.Row="3" Grid.Column="0" VerticalAlignment="Top" Margin="5"/>
-                                <TextBlock Text="14:00" Grid.Row="4" Grid.Column="0" VerticalAlignment="Top" Margin="5"/>
-                                <TextBlock Text="15:35" Grid.Row="5" Grid.Column="0" VerticalAlignment="Top" Margin="5"/>
-                                <TextBlock Text="17:10" Grid.Row="6" Grid.Column="0" VerticalAlignment="Top" Margin="5"/>
+                                        <TextBlock Text="08:30" Grid.Row="1" Grid.Column="0" VerticalAlignment="Top" Margin="5"/>
+                                        <TextBlock Text="10:15" Grid.Row="2" Grid.Column="0" VerticalAlignment="Top" Margin="5"/>
+                                        <TextBlock Text="12:15" Grid.Row="3" Grid.Column="0" VerticalAlignment="Top" Margin="5"/>
+                                        <TextBlock Text="14:00" Grid.Row="4" Grid.Column="0" VerticalAlignment="Top" Margin="5"/>
+                                        <TextBlock Text="15:35" Grid.Row="5" Grid.Column="0" VerticalAlignment="Top" Margin="5"/>
+                                        <TextBlock Text="17:10" Grid.Row="6" Grid.Column="0" VerticalAlignment="Top" Margin="5"/>
 
-                                <ItemsPresenter Grid.Row="0" Grid.Column="0" Grid.RowSpan="12" Grid.ColumnSpan="7"/>
-                            </Grid>
-                        </ControlTemplate>
-                    </ListBox.Template>
-                    <ListBox.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <Grid ShowGridLines="False">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="60"/>
-                                    <ColumnDefinition Width="150"/>
-                                    <ColumnDefinition Width="150"/>
-                                    <ColumnDefinition Width="150"/>
-                                    <ColumnDefinition Width="150"/>
-                                    <ColumnDefinition Width="150"/>
-                                    <ColumnDefinition Width="150"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="40"/>
-                                    <RowDefinition Height="80"/>
-                                    <RowDefinition Height="80"/>
-                                    <RowDefinition Height="80"/>
-                                    <RowDefinition Height="80"/>
-                                    <RowDefinition Height="80"/>
-                                </Grid.RowDefinitions>
-                            </Grid>
-                        </ItemsPanelTemplate>
-                    </ListBox.ItemsPanel>
-                    <ListBox.ItemContainerStyle>
-                        <Style TargetType="ListBoxItem">
-                            <Setter Property="Grid.Row" Value="{Binding Slot.StartHour, Converter={StaticResource HourToRow}}"/>
-                            <Setter Property="Grid.Column" Value="{Binding Slot.Day, Converter={StaticResource DayToColumn}}"/>
-                            <Setter Property="Grid.RowSpan" Value="{Binding Lesson.Duration}"/>
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="ListBoxItem">
-                                        <ContentPresenter />
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
-                    </ListBox.ItemContainerStyle>
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <Border Background="#E3F2FD" BorderBrush="#2196F3" BorderThickness="2" Margin="2" CornerRadius="4" Padding="5">
-                                <Border.Style>
-                                    <Style TargetType="Border">
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
-                                                <Setter Property="Background" Value="#BBDEFB"/>
-                                                <Setter Property="BorderBrush" Value="#1976D2"/>
-                                                <Setter Property="BorderThickness" Value="3"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Border.Style>
-                                <StackPanel>
-                                    <TextBlock Text="{Binding Lesson.Subject.Name}" FontWeight="Bold" FontSize="11" TextWrapping="Wrap"/>
-                                    <TextBlock Text="{Binding Lesson.Lector.LastNameWithAliases}" FontSize="10" TextWrapping="Wrap"/>
-                                    <TextBlock Text="{Binding Room.FullNumber}" FontSize="10" Foreground="#666"/>
-                                    <TextBlock Text="{Binding Lesson.Group.Name}" FontSize="10" Foreground="#666"/>
-                                </StackPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </Grid>
-        </ScrollViewer>
+                                        <ItemsPresenter Grid.Row="1" Grid.Column="1" Grid.RowSpan="6" Grid.ColumnSpan="6"/>
+                                    </Grid>
+                                </ControlTemplate>
+                            </ListBox.Template>
+                             <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <Grid ShowGridLines="False">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="150"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="80"/>
+                                            <RowDefinition Height="80"/>
+                                            <RowDefinition Height="80"/>
+                                            <RowDefinition Height="80"/>
+                                            <RowDefinition Height="80"/>
+                                            <RowDefinition Height="80"/>
+                                        </Grid.RowDefinitions>
+                                    </Grid>
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="Grid.Row" Value="{Binding Slot.StartHour, Converter={StaticResource HourToRow}}"/>
+                                    <Setter Property="Grid.Column" Value="{Binding Slot.Day, Converter={StaticResource DayToColumn}}"/>
+                                    <Setter Property="Grid.RowSpan" Value="{Binding Lesson.Duration}"/>
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="ListBoxItem">
+                                                <ContentPresenter />
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#E3F2FD" BorderBrush="#2196F3" BorderThickness="2" Margin="2" CornerRadius="4" Padding="5">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                                        <Setter Property="Background" Value="#BBDEFB"/>
+                                                        <Setter Property="BorderBrush" Value="#1976D2"/>
+                                                        <Setter Property="BorderThickness" Value="3"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Lesson.Subject.Name}" FontWeight="Bold" FontSize="11" TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding Lesson.Lector.LastNameWithAliases}" FontSize="10" TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding Room.FullNumber}" FontSize="10" Foreground="#666"/>
+                                            <TextBlock Text="{Binding Lesson.Group.Name}" FontSize="10" Foreground="#666"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Header="Журнал">
+                <TextBox Text="{Binding LogsText}" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" FontFamily="Consolas"/>
+            </TabItem>
+            <TabItem Header="Отладка">
+                <TextBox Text="{Binding DebugText}" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" FontFamily="Consolas"/>
+            </TabItem>
+        </TabControl>
     </Grid>
 </Window>
