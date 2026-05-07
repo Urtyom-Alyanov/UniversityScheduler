@@ -26,12 +26,33 @@ public class ConflictServiceTests
     }
 
     [Fact]
+    public void GetConflictMessages_SameRoom_ReturnsTrue() {
+      var (l1, s1, r) = CreateData();
+      var (l2, s2, _) = CreateData();
+      var schedule = new List<ScheduledLesson> { new(l1, s1, r) };
+      var msg = _service.GetConflictMessages(l2, s1, r, schedule);
+
+      Assert.Equal(r.ID.ToString(), msg.ToList()[0].entityId);
+    }
+
+    [Fact]
     public void HasConflict_SameLector_ReturnsTrue() {
         var (l1, s1, r1) = CreateData();
         var (l2, s2, r2) = CreateData();
         l2.Lector.ID = l1.Lector.ID;
         var schedule = new List<ScheduledLesson> { new(l1, s1, r1) };
         Assert.True(_service.HasConflict(l2, s1, r2, schedule));
+    }
+
+    [Fact]
+    public void GetConflictMessages_SameLector_ReturnsTrue() {
+      var (l1, s1, r1) = CreateData();
+      var (l2, s2, r2) = CreateData();
+      l2.Lector.ID = l1.Lector.ID;
+      var schedule = new List<ScheduledLesson> { new(l1, s1, r1) };
+      var msg = _service.GetConflictMessages(l2, s1, r2, schedule);
+
+      Assert.Equal(l1.Lector.ID.ToString(), msg.ToList()[0].entityId);
     }
 
     [Fact]
@@ -42,6 +63,18 @@ public class ConflictServiceTests
         var schedule = new List<ScheduledLesson> { new(l1, s1, r1) };
         Assert.True(_service.HasConflict(l2, s1, r2, schedule));
     }
+
+    [Fact]
+    public void GetConflictMessages_SameGroup_ReturnsTrue() {
+      var (l1, s1, r1) = CreateData();
+      var (l2, s2, r2) = CreateData();
+      l2.Group.ID = l1.Group.ID;
+      var schedule = new List<ScheduledLesson> { new(l1, s1, r1) };
+      var msg = _service.GetConflictMessages(l2, s1, r2, schedule);
+
+      Assert.Equal(l1.Group.ID.ToString(), msg.ToList()[0].entityId);
+    }
+
 
     [Fact]
     public void HasConflict_DifferentTime_ReturnsFalse() {
