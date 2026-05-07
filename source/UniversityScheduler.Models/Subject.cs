@@ -4,6 +4,6 @@ namespace UniversityScheduler.Models;
 /// Дисциплина aka предмет
 /// </summary>
 public class Subject(string name) {
-  public Guid ID { get; set; }
+  public Guid ID { get; set; } = Guid.NewGuid();
   public string Name => name;
 }

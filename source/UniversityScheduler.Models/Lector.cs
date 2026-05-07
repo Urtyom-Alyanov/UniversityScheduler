@@ -7,7 +7,7 @@ namespace UniversityScheduler.Models;
 /// <param name="firstName">Имя</param>
 /// <param name="middleName">Отчество</param>
 public class Lector(string lastName, string firstName, string middleName) {
-  public Guid ID { get; set; }
+  public Guid ID { get; set; } = Guid.NewGuid();
 
   public string FullName => $"{lastName} {firstName} {middleName}";
   public string LastNameWithAliases => $"{lastName} {firstName[0]}. {middleName[0]}.";

@@ -19,7 +19,7 @@ public class Lesson(
   public Lector Lector => lector;
   public RoomType RequiredRoomType => requiredRoomType;
 
-  public Guid ID { get; set; }
+  public Guid ID { get; set; } = Guid.NewGuid();
   public uint Duration => duration;
 
   public List<Guid> Prerequisites { get; set; } = new();

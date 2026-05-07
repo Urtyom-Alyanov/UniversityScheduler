@@ -6,6 +6,24 @@ namespace UniversityScheduler.Models.Tests;
 public class ModelTests
 {
   [Fact]
+  public void Subject_ShouldFormatCorrectlty()
+  {
+    var subj = new Subject("Метаматематика");
+
+    Assert.Equal("Метаматематика", subj.Name);
+  }
+
+  [Fact]
+  public void Lesson_CorrectSubject()
+  {
+    var subj = new Subject("Метаматематика");
+    var lesson = new Lesson(subj, new Group('B', "1", "1", "1", "1"),
+      new Lector("R", "M", "S"), 2, RoomType.Lecture);
+
+    Assert.Equal(lesson.Subject, subj);
+  }
+
+  [Fact]
   public void Room_FullNumber_ShouldFormatCorrectlty()
   {
     var room = new Room("A", 2, 5); // Корпус А, этаж 2, каб 5

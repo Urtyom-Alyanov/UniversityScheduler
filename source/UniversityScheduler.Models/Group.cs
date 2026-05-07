@@ -14,7 +14,7 @@ public class Group(
     string subspecialty,
     string year,
     string number) {
-  public Guid ID { get; set; }
+  public Guid ID { get; set; } = Guid.NewGuid();
 
   /// <summary>
   /// Полное имя группы
