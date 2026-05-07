@@ -203,6 +203,45 @@
             <TabItem Header="Отладка">
                 <TextBox Text="{Binding DebugText}" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" FontFamily="Consolas"/>
             </TabItem>
+          <TabItem Header="Бенчмарк">
+            <Grid ColumnSpan="20">
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+              </Grid.RowDefinitions>
+
+              <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                <Button Content="Запустить тест производительности"
+                        Command="{Binding RunBenchmarkCommand}"
+                        Width="250" Height="40"
+                        Background="#673AB7" Foreground="White" BorderThickness="0">
+                  <Button.Style>
+                    <Style TargetType="Button">
+                      <Style.Triggers>
+                        <Trigger Property="IsEnabled" Value="False">
+                          <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                      </Style.Triggers>
+                    </Style>
+                  </Button.Style>
+                </Button>
+
+                <ProgressBar IsIndeterminate="{Binding IsBenchmarking}"
+                             Visibility="{Binding IsBenchmarking, Converter={StaticResource BooleanToVisibilityConverter}}"
+                             Width="200" Height="10" Margin="20,0,0,0"/>
+              </StackPanel>
+
+              <Border Grid.Row="1" Background="Black" CornerRadius="5" Padding="10">
+                <ScrollViewer>
+                  <TextBlock Text="{Binding BenchmarkText}"
+                             Foreground="#00FF00"
+                             FontFamily="Consolas"
+                             FontSize="14"
+                             TextWrapping="Wrap"/>
+                </ScrollViewer>
+              </Border>
+            </Grid>
+          </TabItem>
         </TabControl>
     </Grid>
 </Window>

@@ -40,6 +40,8 @@ public class ScheduleService(
             r.Type == lesson.RequiredRoomType &&
             !conflictService.HasConflict(lesson, slot, r, result.ScheduledLessons));
 
+
+
         if (suitableRoom != null) {
           result.ScheduledLessons.Add(new ScheduledLesson(lesson, slot, suitableRoom));
           placed = true;

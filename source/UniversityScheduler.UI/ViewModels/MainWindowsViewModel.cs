@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Windows.Input;
 using System.IO;
 using System.Linq;
+using System.Text;
 using UniversityScheduler.Models;
 using UniversityScheduler.Services;
 
@@ -114,6 +116,19 @@ public class MainWindowsViewModel : ViewModelBase {
     set => SetProperty(ref _debugText, value);
   }
 
+  private string _benchmarkText = "Нажмите 'Запустить тест', чтобы измерить производительность...";
+  private bool _isBenchmarking = false;
+
+  public string BenchmarkText {
+    get => _benchmarkText;
+    set => SetProperty(ref _benchmarkText, value);
+  }
+
+  public bool IsBenchmarking {
+    get => _isBenchmarking;
+    set => SetProperty(ref _isBenchmarking, value);
+  }
+
   private ScheduledLesson? _selectedScheduledLesson;
 
   public ScheduledLesson? SelectedScheduledLesson {
@@ -141,6 +156,7 @@ public class MainWindowsViewModel : ViewModelBase {
   public ICommand MoveDownCommand { get; }
   public ICommand MoveLeftCommand { get; }
   public ICommand MoveRightCommand { get; }
+  public ICommand RunBenchmarkCommand { get; }
 
   public MainWindowsViewModel(
       ScheduleService scheduler,
@@ -159,8 +175,99 @@ public class MainWindowsViewModel : ViewModelBase {
     MoveDownCommand = new RelayCommand(_ => MoveLesson(0, 1), _ => IsLessonSelected);
     MoveLeftCommand = new RelayCommand(_ => MoveLesson(-1, 0), _ => IsLessonSelected);
     MoveRightCommand = new RelayCommand(_ => MoveLesson(1, 0), _ => IsLessonSelected);
+    RunBenchmarkCommand = new RelayCommand(_ => RunBenchmarkAsync(), _ => !IsBenchmarking);
 
     InitializeData();
+  }
+
+  private (List<Lesson> Lessons, List<Room> Rooms, List<TimeSlot> Slots) PrepareBenchmarkData(int count) {
+    var rnd = new Random(42);
+    var groups = Enumerable.Range(1, Math.Max(1, count / 10)).Select(i => new Group('Б', "ТЕСТ", "ИИ", "24", i.ToString("D2")) { ID = Guid.NewGuid() }).ToList();
+    var lectors = Enumerable.Range(1, Math.Max(1, count / 5)).Select(i => new Lector("Преп", i.ToString(), "") { ID = Guid.NewGuid() }).ToList();
+
+    // Для 5000 занятий нужно много аудиторий, иначе генератор захлебнется
+    int roomCount = Math.Max(50, count / 15);
+    var rooms = Enumerable.Range(1, roomCount).Select(i => new Room("Л", (uint)(i / 10), (uint)(i % 10)) {
+      ID = Guid.NewGuid(),
+      Type = (RoomType)rnd.Next(1, 4)
+    }).ToList();
+
+    var slots = new List<TimeSlot>();
+    for (int d = 1; d <= 6; d++)
+    for (uint h = 1; h <= 6; h++)
+      slots.Add(new TimeSlot((DayOfWeek)d, h));
+
+    var lessons = new List<Lesson>();
+    var subject = new Subject("Тестовый предмет");
+
+    for (int i = 0; i < count; i++) {
+      var lesson = new Lesson(
+          subject,
+          groups[rnd.Next(groups.Count)],
+          lectors[rnd.Next(lectors.Count)],
+          1,
+          (RoomType)rnd.Next(1, 4))
+        { ID = Guid.NewGuid() };
+
+      // Добавляем случайную зависимость для топологической сортировки (каждое 5-е зависит от предыдущего)
+      if (i > 0 && i % 5 == 0) {
+        lesson.Prerequisites.Add(lessons[i-1].ID);
+      }
+
+      lessons.Add(lesson);
+    }
+
+    return (lessons, rooms, slots);
+  }
+
+  private async Task RunBenchmarkAsync() {
+    IsBenchmarking = true;
+    BenchmarkText = "Тестирование запущено... Пожалуйста, подождите.\n";
+
+    var sb = new StringBuilder();
+    int[] sizes = { 300, 1000, 5000 };
+
+    var topoService = new TopologicalSortService();
+
+    await Task.Run(() => {
+      foreach (int size in sizes) {
+        sb.AppendLine($"--- ТЕСТ: {size} ЗАНЯТИЙ ---");
+
+        // 1. Генерация данных для теста
+        var testData = PrepareBenchmarkData(size);
+        var rooms = testData.Rooms;
+        var slots = testData.Slots;
+        var lessons = testData.Lessons;
+
+        var sw = new Stopwatch();
+
+        // 2. Тест топологической сортировки
+        sw.Start();
+        topoService.Sort(lessons);
+        sw.Stop();
+        sb.AppendLine($"Топологическая сортировка: {sw.ElapsedMilliseconds:F4} мс");
+
+        // 3. Тест жадной генерации
+        sw.Restart();
+        var result = _scheduler.GenerateScheduledLessons(lessons, rooms, slots);
+        sw.Stop();
+        sb.AppendLine($"Генерация (Greedy): {sw.ElapsedMilliseconds:F4} мс (Назначено: {result.ScheduledLessons.Count})");
+
+        // 4. Тест оптимизации (уплотнения)
+        // Берем только успешно назначенные занятия
+        var scheduled = result.ScheduledLessons;
+        sw.Restart();
+        if (scheduled.Count > 0) {
+          _optimizer.Optimize(scheduled, rooms, slots);
+        }
+        sw.Stop();
+        sb.AppendLine($"Оптимизация: {sw.ElapsedMilliseconds:F4} мс");
+        sb.AppendLine();
+      }
+    });
+
+    BenchmarkText = sb.ToString();
+    IsBenchmarking = false;
   }
 
   private void MoveLesson(int dayDelta, int hourDelta) {
