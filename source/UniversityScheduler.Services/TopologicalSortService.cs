@@ -14,7 +14,7 @@ public class TopologicalSortService {
   /// <param name="lessons">Занятия</param>
   /// <returns>Отсортированные занятия</returns>
   /// <exception cref="ArgumentNullException">Не переданы занятия</exception>
-  /// <exception cref="InvalidOperationException">Есть цикл в зависимостях</exception>
+  /// <exception cref="InvalidOperationException">Цикл в зависимостях</exception>
   public List<Lesson> Sort(List<Lesson> lessons) {
     if (lessons == null) throw new ArgumentNullException(nameof(lessons));
 
