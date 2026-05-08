@@ -26,7 +26,6 @@ public class OptimizationService(IConflictService conflictService) {
   /// <param name="allSlots">Временные слоты</param>
   /// <returns>Было ли оптимизировано?</returns>
   private bool OptimizeForGroup(Guid groupId, List<ScheduledLesson> schedule, List<Room> allRooms, List<TimeSlot> allSlots) {
-    bool anyMoveMade = false;
     var groupLessons = schedule
       .Where(s => s.Lesson.Group.ID == groupId)
       .OrderBy(s => s.Slot.Day)
@@ -49,7 +48,7 @@ public class OptimizationService(IConflictService conflictService) {
         }
       }
     }
-    return anyMoveMade;
+    return false;
   }
 
   /// <summary>
