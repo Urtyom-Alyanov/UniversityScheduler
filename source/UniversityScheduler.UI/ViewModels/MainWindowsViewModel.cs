@@ -19,6 +19,7 @@ public class MainWindowsViewModel : ViewModelBase {
   private readonly ScheduleService _scheduler;
   private readonly OptimizationService _optimizer;
   private readonly StatisticsService _statisticsService;
+  private readonly IConflictService _conflictService;
 
   private ObservableCollection<ScheduledLesson> _allScheduledLessons = new();
   private ObservableCollection<ScheduledLesson> _displayLessons = new();
@@ -161,11 +162,13 @@ public class MainWindowsViewModel : ViewModelBase {
   public MainWindowsViewModel(
       ScheduleService scheduler,
       OptimizationService optimizer,
-      StatisticsService statisticsService
+      StatisticsService statisticsService,
+      IConflictService conflictService
   ) {
     _scheduler = scheduler;
     _optimizer = optimizer;
     _statisticsService = statisticsService;
+    _conflictService = conflictService;
 
     GenerateCommand = new RelayCommand(_ => Generate());
     OptimizeCommand = new RelayCommand(_ => Optimize(), _ => _allScheduledLessons.Count > 0);
@@ -281,15 +284,14 @@ public class MainWindowsViewModel : ViewModelBase {
     var newSlot = new TimeSlot(newDay, newHour);
 
     var otherLessons = _allScheduledLessons.Where(l => l != SelectedScheduledLesson).ToList();
-    var conflictService = new ConflictService();
 
-    if (!conflictService.HasConflict(SelectedScheduledLesson.Lesson, newSlot, SelectedScheduledLesson.Room, otherLessons)) {
+    if (!_conflictService.HasConflict(SelectedScheduledLesson.Lesson, newSlot, SelectedScheduledLesson.Room, otherLessons)) {
       SelectedScheduledLesson.Slot = newSlot;
       UpdateDisplay();
       UpdateStatistics();
       ConflictMessages = string.Empty;
     } else {
-      var messages = conflictService.GetConflictMessages(SelectedScheduledLesson.Lesson, newSlot, SelectedScheduledLesson.Room, otherLessons);
+      var messages = _conflictService.GetConflictMessages(SelectedScheduledLesson.Lesson, newSlot, SelectedScheduledLesson.Room, otherLessons);
       ConflictMessages = "Конфликт: " + string.Join(", ", messages.Select(m => $"{m.conflictType}: {m.entityName}"));
     }
   }
