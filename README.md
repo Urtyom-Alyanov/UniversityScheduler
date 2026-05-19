@@ -45,7 +45,140 @@
 Для большей наглядности, ниже представлена UML диаграма самого проекта.
 
 ```mermaid
+classDiagram
+    direction TB
 
+    namespace Models {
+        class Group {
+            +Guid ID
+            +char stage
+            +string specialty
+            +string subspecialty
+            +string year
+            +string number
+            +string Name
+        }
+        class Lector {
+            +Guid ID
+            +string lastName
+            +string firstName
+            +string middleName
+            +string FullName
+            +string LastNameWithAliases
+        }
+        class Subject {
+            +Guid ID
+            +string Name
+        }
+        class Room {
+            +Guid ID
+            +RoomType Type
+            +string building
+            +uint stage
+            +uint number
+            +string FullNumber
+        }
+        class RoomType {
+            <<enumeration>>
+            Lecture
+            Laboratory
+            Computer
+        }
+        class TimeSlot {
+            <<record>>
+            +DayOfWeek Day
+            +uint StartHour
+        }
+        class Lesson {
+            +Guid ID
+            +Subject Subject
+            +Group Group
+            +Lector Lector
+            +uint Duration
+            +RoomType RequiredRoomType
+            +List~Guid~ Prerequisites
+        }
+        class ScheduledLesson {
+            +Lesson Lesson
+            +TimeSlot Slot
+            +Room Room
+            +uint EndTime
+        }
+    }
+
+    namespace Services {
+        class IConflictService {
+            <<interface>>
+            +bool HasConflict(...)
+            +IEnumerable~ConflictMessage~ GetConflictMessages(...)
+        }
+        class ConflictService {
+        }
+        class TopologicalSortService {
+            +List~Lesson~ Sort(List~Lesson~ lessons)
+        }
+        class ScheduleService {
+            +ScheduleResult GenerateScheduledLessons(...)
+        }
+        class OptimizationService {
+            +void Optimize(...)
+        }
+        class StatisticsService {
+            +double GetRoomUtilization(...)
+            +Dictionary~string, long~ GetLectorWorkload(...)
+            +uint CalculateTotalWindows(...)
+        }
+    }
+
+    namespace ViewModels {
+        class ViewModelBase {
+            <<abstract>>
+            +event PropertyChanged
+        }
+        class MainWindowsViewModel {
+            +ObservableCollection~Group~ Groups
+            +ObservableCollection~Lector~ Lectors
+            +ObservableCollection~Room~ Rooms
+            +ObservableCollection~ScheduledLesson~ DisplayLessons
+            +ICommand GenerateCommand
+            +ICommand OptimizeCommand
+            +void Generate()
+            +void Optimize()
+        }
+        class RelayCommand {
+            <<interface>>
+            ICommand
+        }
+    }
+
+    %% Relationships
+    Lesson "1" --> "1" Subject
+    Lesson "1" --> "1" Group
+    Lesson "1" --> "1" Lector
+    Lesson "1" --> "1" RoomType : requires
+
+    ScheduledLesson "1" --> "1" Lesson
+    ScheduledLesson "1" --> "1" TimeSlot
+    ScheduledLesson "1" --> "1" Room
+
+    Room "1" --> "1" RoomType
+
+    ConflictService ..|> IConflictService
+
+    ScheduleService --> IConflictService : uses
+    ScheduleService --> TopologicalSortService : uses
+    OptimizationService --> IConflictService : uses
+
+    MainWindowsViewModel --|> ViewModelBase
+    MainWindowsViewModel --> ScheduleService : depends
+    MainWindowsViewModel --> OptimizationService : depends
+    MainWindowsViewModel --> StatisticsService : depends
+    MainWindowsViewModel --> IConflictService : depends
+
+    MainWindowsViewModel "1" o-- "*" ScheduledLesson : displays
+    MainWindowsViewModel "1" o-- "*" Group
+    MainWindowsViewModel "1" o-- "*" Lector
+    MainWindowsViewModel "1" o-- "*" Room
 ```
 
 ## Развёртка
